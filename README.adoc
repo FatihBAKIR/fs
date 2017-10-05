@@ -1,0 +1,16 @@
+= File System
+Fatih; Chani; Austin
+
+Sources are in `src` directory
+
+To build the thing:
+
+[source, bash]
+----
+mkdir build
+cd build
+cmake ../src
+make
+----
+
+You should have CMake installed
