@@ -4,9 +4,12 @@
 #include <array>
 #include <cassert>
 #include <fs270/mmap_block_dev.hpp>
+#include <fs270/contiguous_data.hpp>
 
 int main() {
     fs::mmap_block_dev data("/tmp/test", 1024 * 1024, 16);
+
+    auto file = fs::create(&data);
 
     std::array<char, 16> buffer;
     buffer.fill('a');
