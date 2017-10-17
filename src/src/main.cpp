@@ -1,12 +1,12 @@
 #include <iostream>
 
-#include <fs270/in_memory_data.hpp>
+#include <fs270/ram_block_dev.hpp>
 #include <array>
 #include <cassert>
-#include <fs270/mapped_file_provider.hpp>
+#include <fs270/mmap_block_dev.hpp>
 
 int main() {
-    fs::mapped_file_provider data("/tmp/test", 1024 * 1024, 16);
+    fs::mmap_block_dev data("/tmp/test", 1024 * 1024, 16);
 
     std::array<char, 16> buffer;
     buffer.fill('a');

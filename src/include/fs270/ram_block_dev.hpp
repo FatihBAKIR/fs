@@ -1,23 +1,23 @@
 //
-// Created by fatih on 10/8/17.
+// Created by Mehmet Fatih BAKIR on 09/10/2017.
 //
 
-#include <cstdint>
+#pragma once
+
 #include <cstddef>
-#include <string>
+#include <cstdint>
 
 namespace fs
 {
-class mapped_file_provider
-{
+    class ram_block_dev
+    {
     public:
         using sector_id_t = int;
 
         void write(sector_id_t id, const void* data);
         void read(sector_id_t id, void* data);
 
-        mapped_file_provider(const std::string& path, size_t size, uint16_t block_size);
-        ~mapped_file_provider();
+        ram_block_dev(size_t size, uint16_t block_size);
 
     private:
         char* m_memory;
@@ -26,5 +26,7 @@ class mapped_file_provider
         uint16_t m_blk_size;
 
         char* get_block_start(sector_id_t sector);
-};
+    };
 }
+
+
