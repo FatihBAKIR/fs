@@ -4,14 +4,14 @@
 
 #pragma once
 
-#include "in_memory_data.hpp"
+#include "ram_block_dev.hpp"
 #include "bitmap_allocator.hpp"
 
 namespace fs
 {
     struct configuration
     {
-        using raw_data_type =  in_memory_data;
+        using raw_data_type =  ram_block_dev;
         using allocator_type = bitmap_allocator;
 
 

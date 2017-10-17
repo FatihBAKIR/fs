@@ -1,15 +1,16 @@
 #include <iostream>
 
-#include <fs270/in_memory_data.hpp>
+#include <fs270/ram_block_dev.hpp>
 #include <array>
 #include <cassert>
+#include <fs270/mmap_block_dev.hpp>
 
 int main() {
-    fs::in_memory_data data(1024 * 1024, 16);
+    fs::mmap_block_dev data("/tmp/test", 1024 * 1024, 16);
 
     std::array<char, 16> buffer;
     buffer.fill('a');
-    data.write(3, buffer.data());
+    //data.write(3, buffer.data());
 
     std::array<char, 16> other_buffer;
     other_buffer.fill('b');
