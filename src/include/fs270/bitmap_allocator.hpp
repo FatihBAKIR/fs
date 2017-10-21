@@ -5,7 +5,6 @@
 #pragma once
 
 #include <fs270/config.hpp>
-#include "config.hpp"
 
 namespace fs
 {
@@ -16,6 +15,5 @@ namespace fs
 
 
     private:
-        configuration::raw_data_type m_data;
     };
 }

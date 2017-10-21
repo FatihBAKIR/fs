@@ -7,25 +7,30 @@
 
 namespace fs
 {
-    char* ram_block_dev::get_block_start(ram_block_dev::sector_id_t sector)
-    {
-        return m_memory + sector * m_blk_size;
-    }
+char *ram_block_dev::get_block_start(ram_block_dev::sector_id_t sector)
+{
+    return m_memory + sector * m_blk_size;
+}
 
-    void ram_block_dev::write(ram_block_dev::sector_id_t id, const void* data)
-    {
-        auto ptr = reinterpret_cast<const char*>(data);
-        std::copy(ptr, ptr + m_blk_size, get_block_start(id));
-    }
+void ram_block_dev::write(ram_block_dev::sector_id_t id, const void *data)
+{
+    auto ptr = reinterpret_cast<const char *>(data);
+    std::copy(ptr, ptr + m_blk_size, get_block_start(id));
+}
 
-    void ram_block_dev::read(ram_block_dev::sector_id_t id, void* data)
-    {
-        auto ptr = reinterpret_cast<char*>(data);
-        std::copy(get_block_start(id), get_block_start(id) + m_blk_size, ptr);
-    }
+void ram_block_dev::read(ram_block_dev::sector_id_t id, void *data)
+{
+    auto ptr = reinterpret_cast<char *>(data);
+    std::copy(get_block_start(id), get_block_start(id) + m_blk_size, ptr);
+}
 
-    ram_block_dev::ram_block_dev(size_t size, uint16_t block_size)
-        : m_blk_size(block_size), m_memory(new char[size]), m_capacity(size)
-    {
-    }
+uint16_t ram_block_dev::get_block_size() const
+{
+    return m_blk_size;
+}
+
+ram_block_dev::ram_block_dev(size_t size, uint16_t block_size)
+    : m_blk_size(block_size), m_memory(new char[size]), m_capacity(size)
+{
+}
 }

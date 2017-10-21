@@ -17,6 +17,9 @@ namespace fs
         void write(sector_id_t id, const void* data);
         void read(sector_id_t id, void* data);
 
+        uint16_t get_block_size() const;
+        size_t capacity() const;
+
         ram_block_dev(size_t size, uint16_t block_size);
 
     private:
