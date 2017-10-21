@@ -12,25 +12,31 @@
 
 namespace fs
 {
-struct id_comparator
-{
-    struct is_transparent{};
-
-    bool operator()(const block& a, config::sector_id_t b) const { return a.m_id < b; }
-    bool operator()(config::sector_id_t b, const block& a) const { return b < a.m_id; }
-    bool operator()(const block& a, const block& b) const { return a.m_id < b.m_id; }
-};
 
 class block_cache
 {
+public:
+    /**
+     * Loads the sector with the given id to the cache and returns
+     * a pointer to the block object.
+     * If the object is already in the cache, it's not loaded again
+     * @param id id of the sector
+     * @return pointer to the block
+     */
+    block_ptr load(config::sector_id_t id);
+
+
+private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;
 
     void flush(block*);
-public:
     block_cache(config::block_dev_type& device) : m_device(&device) {}
 
-    block_ptr load(config::sector_id_t);
+    friend block_cache* get_cache(config::block_dev_type&);
+public:
     void finalize(block* b);
 };
+
+block_cache* get_cache(config::block_dev_type& device);
 }

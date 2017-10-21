@@ -24,26 +24,39 @@ class block
     friend void intrusive_ptr_add_ref(block* b);
     friend void intrusive_ptr_release(block* b);
 
+    template <class T>
+    T* data_impl(std::false_type);
+
+    template <class T>
+    const T* data_impl(std::true_type) const;
+
 public:
 
-    template <class T = uint8_t>
-    T* data();
-
-    template <class T = uint8_t>
-    const T* data() const;
+    template <class T = char> T* data();
+    template <class T = char> const T* data() const;
 };
 
-template<class T = uint8_t>
-T *block::data()
+template<class T>
+T *block::data_impl(std::false_type)
 {
     m_writeback = true;
     return reinterpret_cast<T*>(m_data.get());
 }
 
-template<class T = uint8_t>
-const T *block::data() const
+template<class T>
+const T *block::data_impl(std::true_type) const
 {
     return reinterpret_cast<const T*>(m_data.get());
+}
+
+template<class T = char> T *block::data()
+{
+    return data_impl<T>(std::is_const<T>{});
+}
+
+template<class T = char> const T *block::data() const
+{
+    return data_impl<T>(std::is_const<T>{});
 }
 
 class block;

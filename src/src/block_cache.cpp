@@ -39,4 +39,10 @@ void block_cache::flush(block* b)
     if (!b->m_writeback) return;
     m_device->write(b->m_id, b->m_data.get());
 }
+
+block_cache *get_cache(config::block_dev_type &device)
+{
+    static block_cache cache(device);
+    return &cache;
+}
 }
