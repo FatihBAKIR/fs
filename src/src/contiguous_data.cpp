@@ -106,16 +106,14 @@ config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtu
     }
     case 2:
     {
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
-        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
-        return buffer[path[1]];
+        auto buf = m_cache->load(path[0]);
+        return buf->data<const config::sector_id_t>()[path[1]];
     }
     case 3:
     {
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
-        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
-        m_device->read(buffer[path[1]], buffer.data());
-        return buffer[path[2]];
+        auto buf = m_cache->load(m_data.first_indirect_blocks[path[0]]);
+        buf = m_cache->load(buf->data<const config::sector_id_t>()[path[1]]);
+        return buf->data<const config::sector_id_t>()[path[2]];
     }
     default:
     {
@@ -133,22 +131,20 @@ void cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
     case 1:
     {
         m_data.direct_blocks[path[0]] = physical_id;
-        break;
+        return;
     }
     case 2:
     {
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
-        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
-        buffer[path[1]] = physical_id;
-        m_device->write(m_data.first_indirect_blocks[path[0]], buffer.data());
+        auto buf = m_cache->load(path[0]);
+        buf->data<config::sector_id_t>()[path[1]] = physical_id;
+        return;
     }
     case 3:
     {
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
-        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
-        m_device->read(buffer[path[1]], buffer.data());
-        buffer[path[2]] = physical_id;
-        m_device->write(buffer[path[1]], buffer.data());
+        auto buf = m_cache->load(m_data.first_indirect_blocks[path[0]]);
+        buf = m_cache->load(buf->data<const config::sector_id_t>()[path[1]]);
+        buf->data<config::sector_id_t>()[path[2]] = physical_id;
+        return;
     }
     default:
     {

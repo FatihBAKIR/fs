@@ -40,9 +40,15 @@ void block_cache::flush(block* b)
     m_device->write(b->m_id, b->m_data.get());
 }
 
+static std::map<uintptr_t, block_cache> caches;
 block_cache *get_cache(config::block_dev_type &device)
 {
-    static block_cache cache(device);
-    return &cache;
+    auto it = caches.find(reinterpret_cast<uintptr_t>(&device));
+    if (it != caches.end())
+    {
+        return &it->second;
+    }
+    it = caches.emplace(reinterpret_cast<uintptr_t>(&device), block_cache(device)).first;
+    return &it->second;
 }
 }

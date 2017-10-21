@@ -7,6 +7,7 @@
 #include <array>
 #include <vector>
 #include <fs270/config.hpp>
+#include "block_cache.hpp"
 
 namespace fs
 {
@@ -42,8 +43,10 @@ public:
 private:
     detail::contiguous_data m_data;
     config::block_dev_type* m_device;
+    block_cache* m_cache;
 
-    cont_file(const detail::contiguous_data& data, config::block_dev_type* dev) : m_data(data), m_device(dev) {};
+    cont_file(const detail::contiguous_data& data, config::block_dev_type* dev)
+        : m_data(data), m_device(dev), m_cache(get_cache(*dev)) {};
 
     friend cont_file read(config::block_dev_type* device, config::address_t addr);
     friend void write(config::block_dev_type* device, config::address_t addr, const cont_file&);
