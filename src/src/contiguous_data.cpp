@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include <fs270/fsexcept.hpp>
+#include <fs270/block.hpp>
 
 namespace fs
 {

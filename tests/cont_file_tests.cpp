@@ -23,6 +23,10 @@ TEST_CASE("cont file", "[fs][cont_file]")
     REQUIRE(file.get_actual_block(1) == 12);
 
     REQUIRE_THROWS(file.get_actual_block(2));
+
+    file.pop_block();
+    REQUIRE(file.get_block_count() == 1);
+    REQUIRE_THROWS(file.get_actual_block(1));
 }
 
 TEST_CASE("calc_path direct", "[fs][cont_file][cont_data]")

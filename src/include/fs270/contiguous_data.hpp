@@ -51,7 +51,6 @@ private:
     friend cont_file create(config::block_dev_type* device);
 
     std::vector<config::sector_id_t> calc_path(virtual_block_id);
-
 };
 
 cont_file read(config::block_dev_type* device, config::address_t addr);

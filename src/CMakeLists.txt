@@ -22,6 +22,9 @@ target_link_libraries(fs_mmap_blk PUBLIC fs_interface)
 add_library(fs_cont_data src/contiguous_data.cpp include/fs270/contiguous_data.hpp)
 target_link_libraries(fs_cont_data PUBLIC fs_interface)
 
+add_library(fs_blk_cache src/block_cache.cpp include/fs270/block_cache.hpp src/block.cpp include/fs270/block.hpp)
+target_link_libraries(fs_blk_cache PUBLIC fs_interface)
+
 #add_executable(src ${SOURCE_FILES})
 #target_link_libraries(src PUBLIC fs_mmap_blk fs_cont_data)
 

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(fs CXX)
 
-add_executable(cont_file cont_file_tests.cpp tests_main.cpp)
-target_link_libraries(cont_file PRIVATE fs_cont_data fs_ram_blk)
+add_executable(fs_test cont_file_tests.cpp tests_main.cpp cache_tests.cpp)
+target_link_libraries(fs_test PRIVATE fs_cont_data fs_ram_blk fs_blk_cache)
 
 enable_testing()
 
-add_test(cont_file_tests cont_file)
+add_test(fs_tests fs_test)
