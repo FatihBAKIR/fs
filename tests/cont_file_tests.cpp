@@ -2,7 +2,6 @@
 // Created by fatih on 10/20/17.
 //
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <fs270/contiguous_data.hpp>
 #include <fs270/ram_block_dev.hpp>
