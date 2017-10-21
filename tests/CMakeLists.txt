@@ -7,3 +7,5 @@ target_link_libraries(cont_file PRIVATE fs_cont_data fs_ram_blk)
 enable_testing()
 
 add_test(cont_file_tests cont_file)
+
+0xDEADBEEFDEADBEEF

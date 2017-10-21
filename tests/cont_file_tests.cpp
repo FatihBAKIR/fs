@@ -24,3 +24,9 @@ TEST_CASE("cont file", "[fs][cont_file]")
 
     REQUIRE_THROWS(file.get_actual_block(2));
 }
+
+TEST_CASE("simple", "[fs]")
+{
+    fs::ram_block_dev dev(1, 1);
+
+}
