@@ -85,6 +85,7 @@ config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtu
     }
 
     // third indirect
+    return -1;
 }
 
 void cont_file::push_block(config::block_dev_type::sector_id_t)

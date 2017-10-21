@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.5)
 project(src)
 
-set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES src/main.cpp
         include/fs270/bitmap_allocator.hpp
