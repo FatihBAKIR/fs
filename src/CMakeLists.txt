@@ -7,7 +7,9 @@ set(SOURCE_FILES src/main.cpp
         include/fs270/bitmap_allocator.hpp
         include/fs270/config.hpp
         include/fs270/superblock.hpp
-        include/fs270/fs_fwd.hpp)
+        include/fs270/fs_fwd.hpp
+        include/fs270/fsexcept.hpp)
+
 
 add_library(fs_interface INTERFACE)
 target_include_directories(fs_interface INTERFACE "include")

@@ -5,6 +5,7 @@
 #include <fs270/contiguous_data.hpp>
 #include <vector>
 #include <algorithm>
+#include <fs270/fsexcept.hpp>
 
 namespace fs
 {
@@ -48,28 +49,32 @@ int32_t cont_file::get_block_count() const
     return m_data.block_count;
 }
 
-config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtual_block_id id)
+std::vector<config::sector_id_t>
+detail::calc_path(config::sector_id_t id, const contiguous_data& data, uint16_t blksize)
 {
-    auto ptrs_per_block = m_device->get_block_size() / sizeof (config::sector_id_t);
+    if (id >= data.block_count)
+    {
+        throw translation_error("Given virtual index cannot be translated!");
+    }
 
-    auto direct_count = m_data.direct_blocks.size();
-    auto first_i_count = m_data.first_indirect_blocks.size() * ptrs_per_block;
-    auto second_i_count = m_data.second_indirect_blocks.size() * ptrs_per_block * ptrs_per_block;
-    auto third_i_count = m_data.third_indirect_blocks.size() * ptrs_per_block * ptrs_per_block * ptrs_per_block;
+    int ptrs_per_block = blksize / sizeof (config::sector_id_t);
+
+    auto direct_count = data.direct_blocks.size();
+    auto first_i_count = data.first_indirect_blocks.size() * ptrs_per_block;
+    auto second_i_count = data.second_indirect_blocks.size() * ptrs_per_block * ptrs_per_block;
+    auto third_i_count = data.third_indirect_blocks.size() * ptrs_per_block * ptrs_per_block * ptrs_per_block;
 
     if (id < direct_count)
     {
-        return m_data.direct_blocks[id];
+        return { id };
     }
 
     id -= direct_count;
-    if (id < first_i_count)
+    if (id <first_i_count)
     {
         auto first_index = id / ptrs_per_block;
         auto offset = id % ptrs_per_block;
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size());
-        m_device->read(m_data.first_indirect_blocks[first_index], buffer.data());
-        return buffer[offset];
+        return { first_index, offset };
     }
 
     id -= first_i_count;
@@ -77,17 +82,48 @@ config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtu
     {
         auto second_index = id / (ptrs_per_block * ptrs_per_block);
         auto offset = (id % (ptrs_per_block * ptrs_per_block)) / ptrs_per_block;
-        auto fin_offset = id % ptrs_per_block;
-        std::vector<config::sector_id_t> buffer(m_device->get_block_size());
-        m_device->read(m_data.first_indirect_blocks[second_index], buffer.data());
-        m_device->read(buffer[offset], buffer.data());
-        return buffer[fin_offset];
+        auto fin_offset = (id % (ptrs_per_block * ptrs_per_block)) % ptrs_per_block;
+        return { second_index, offset, fin_offset };
     }
 
-    // third indirect
+    return {};
 }
 
-void cont_file::push_block(config::block_dev_type::sector_id_t)
+std::vector<config::sector_id_t> cont_file::calc_path(cont_file::virtual_block_id id)
+{
+    return detail::calc_path(id, m_data, m_device->get_block_size());
+}
+
+config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtual_block_id id)
+{
+    auto path = calc_path(id);
+    switch (path.size())
+    {
+    case 1:
+    {
+        return m_data.direct_blocks[path[0]];
+    }
+    case 2:
+    {
+        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
+        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
+        return buffer[path[1]];
+    }
+    case 3:
+    {
+        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
+        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
+        m_device->read(buffer[path[1]], buffer.data());
+        return buffer[path[2]];
+    }
+    default:
+    {
+        throw std::runtime_error("nope");
+    }
+    }
+}
+
+void cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
 {
 
 }

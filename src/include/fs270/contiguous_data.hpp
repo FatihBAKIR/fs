@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <vector>
 #include <fs270/config.hpp>
 
 namespace fs
@@ -23,10 +24,21 @@ struct contiguous_data
     std::array<config::block_dev_type::sector_id_t, config::third_indirects>
         third_indirect_blocks;
 };
+
+std::vector<config::sector_id_t> calc_path(config::sector_id_t, const contiguous_data&, uint16_t blksize);
 }
 
 class cont_file
 {
+public:
+    using virtual_block_id = int;
+
+    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id);
+    int32_t get_block_count() const;
+
+    void push_block(config::block_dev_type::sector_id_t);
+    void pop_block();
+private:
     detail::contiguous_data m_data;
     config::block_dev_type* m_device;
 
@@ -36,14 +48,9 @@ class cont_file
     friend void write(config::block_dev_type* device, config::address_t addr, const cont_file&);
 
     friend cont_file create(config::block_dev_type* device);
-public:
-    using virtual_block_id = int;
 
-    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id);
-    int32_t get_block_count() const;
+    std::vector<config::sector_id_t> calc_path(virtual_block_id);
 
-    void push_block(config::block_dev_type::sector_id_t);
-    void pop_block();
 };
 
 cont_file read(config::block_dev_type* device, config::address_t addr);

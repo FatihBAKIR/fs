@@ -25,3 +25,28 @@ TEST_CASE("cont file", "[fs][cont_file]")
 
     REQUIRE_THROWS(file.get_actual_block(2));
 }
+
+TEST_CASE("calc_path", "[fs][cont_file][cont_data]")
+{
+    fs::detail::contiguous_data data = {};
+    REQUIRE(data.block_count == 0);
+
+    REQUIRE_THROWS(fs::detail::calc_path(0, data, 4096));
+
+    data.block_count = 1;
+
+    auto p = fs::detail::calc_path(0, data, 4096);
+    REQUIRE(p.size() == 1);
+    REQUIRE(p[0] == 0);
+
+    data.block_count = 8;
+    p = fs::detail::calc_path(6, data, 4096);
+    REQUIRE(p.size() == 2);
+    REQUIRE(p[0] == 0);
+    REQUIRE(p[1] == 0);
+
+    p = fs::detail::calc_path(7, data, 4096);
+    REQUIRE(p.size() == 2);
+    REQUIRE(p[0] == 0);
+    REQUIRE(p[1] == 1);
+}
