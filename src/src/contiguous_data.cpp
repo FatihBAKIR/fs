@@ -70,7 +70,7 @@ detail::calc_path(config::sector_id_t id, const contiguous_data& data, uint16_t 
     }
 
     id -= direct_count;
-    if (id <first_i_count)
+    if (id < first_i_count)
     {
         auto first_index = id / ptrs_per_block;
         auto offset = id % ptrs_per_block;
@@ -125,11 +125,39 @@ config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtu
 
 void cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
 {
-
+    auto v_id = m_data.block_count++;
+    auto path = calc_path(v_id);
+    switch (path.size())
+    {
+    case 1:
+    {
+        m_data.direct_blocks[path[0]] = physical_id;
+        break;
+    }
+    case 2:
+    {
+        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
+        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
+        buffer[path[1]] = physical_id;
+        m_device->write(m_data.first_indirect_blocks[path[0]], buffer.data());
+    }
+    case 3:
+    {
+        std::vector<config::sector_id_t> buffer(m_device->get_block_size() / sizeof(buffer[0]));
+        m_device->read(m_data.first_indirect_blocks[path[0]], buffer.data());
+        m_device->read(buffer[path[1]], buffer.data());
+        buffer[path[2]] = physical_id;
+        m_device->write(buffer[path[1]], buffer.data());
+    }
+    default:
+    {
+        throw std::runtime_error("nope");
+    }
+    }
 }
 
 void cont_file::pop_block()
 {
-
+    --m_data.block_count;
 }
 }

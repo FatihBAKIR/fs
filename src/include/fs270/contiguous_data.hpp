@@ -14,7 +14,7 @@ namespace detail
 {
 struct contiguous_data
 {
-    uint32_t block_count;
+    int32_t block_count;
     std::array<config::block_dev_type::sector_id_t, config::direct_pointers>
         direct_blocks;
     std::array<config::block_dev_type::sector_id_t, config::first_indirects>
@@ -24,6 +24,7 @@ struct contiguous_data
     std::array<config::block_dev_type::sector_id_t, config::third_indirects>
         third_indirect_blocks;
 };
+
 
 std::vector<config::sector_id_t> calc_path(config::sector_id_t, const contiguous_data&, uint16_t blksize);
 }
