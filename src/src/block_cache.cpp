@@ -38,6 +38,7 @@ void block_cache::flush(block* b)
 {
     if (!b->m_writeback) return;
     m_device->write(b->m_id, b->m_data.get());
+    b->m_writeback = false;
 }
 
 static std::map<uintptr_t, block_cache> caches;

@@ -29,6 +29,20 @@ TEST_CASE("cont file", "[fs][cont_file]")
     REQUIRE_THROWS(file.get_actual_block(1));
 }
 
+TEST_CASE("cont file capacity", "[fs][cont_file]")
+{
+    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
+    fs::cont_file file = fs::create_cont_file(&dev);
+
+    REQUIRE(file.get_block_count() == 0);
+    REQUIRE(file.get_capacity() == 0);
+
+    file.push_block(1);
+    REQUIRE(file.get_capacity() == dev.get_block_size());
+    file.push_block(2);
+    REQUIRE(file.get_capacity() == dev.get_block_size() * 2);
+}
+
 TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
 {
     fs::ram_block_dev dev(10 * 1024 * 1024, 4096);

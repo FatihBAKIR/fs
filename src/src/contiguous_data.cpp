@@ -15,7 +15,7 @@ cont_file read_cont_file(config::block_dev_type *device, config::address_t addr)
     auto blk_index = addr / device->get_block_size();
     auto offset = addr % device->get_block_size();
     auto buf = get_cache(*device)->load(blk_index);
-    auto ptr = reinterpret_cast<detail::contiguous_data*>(buf->data() + offset);
+    auto ptr = buf->data<detail::contiguous_data>(offset);
     return { *ptr, device };
 }
 
@@ -24,7 +24,7 @@ void write_cont_file(config::block_dev_type *device, config::address_t addr, con
     auto blk_index = addr / device->get_block_size();
     auto offset = addr % device->get_block_size();
     auto buf = get_cache(*device)->load(blk_index);
-    auto ptr = reinterpret_cast<detail::contiguous_data*>(buf->data() + offset);
+    auto ptr = buf->data<detail::contiguous_data>(offset);
     *ptr = file.m_data;
 }
 
@@ -86,7 +86,7 @@ detail::calc_path(config::sector_id_t id, const contiguous_data& data, uint16_t 
 
 std::vector<config::sector_id_t> cont_file::calc_path(cont_file::virtual_block_id id)
 {
-    return detail::calc_path(id, m_data, m_device->get_block_size());
+    return detail::calc_path(id, m_data, m_cache->device()->get_block_size());
 }
 
 config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtual_block_id id)
@@ -150,5 +150,10 @@ void cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
 void cont_file::pop_block()
 {
     --m_data.block_count;
+}
+
+int32_t cont_file::get_capacity() const
+{
+    return m_data.block_count * m_cache->device()->get_block_size();
 }
 }
