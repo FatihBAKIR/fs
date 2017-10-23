@@ -79,13 +79,13 @@ const T *block::data_impl(int offset, std::true_type) const
     return reinterpret_cast<const T*>(m_data.get() + offset);
 }
 
-template<class T = char> T *block::data(int offset)
+template<class T> T *block::data(int offset)
 {
     static_assert(std::is_trivially_copyable<T>{}, "T Must be a trivially copyable type!");
     return data_impl<T>(offset, std::is_const<T>{});
 }
 
-template<class T = char> const T *block::data(int offset) const
+template<class T> const T *block::data(int offset) const
 {
     static_assert(std::is_trivially_copyable<T>{}, "T Must be a trivially copyable type!");
     return data_impl<T>(offset, std::is_const<T>{});

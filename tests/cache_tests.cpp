@@ -5,6 +5,7 @@
 #include <catch.hpp>
 #include <fs270/block_cache.hpp>
 #include <cstring>
+#include <array>
 
 TEST_CASE("block cache", "[fs][cache]")
 {
