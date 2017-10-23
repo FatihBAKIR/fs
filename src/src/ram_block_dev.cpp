@@ -33,4 +33,13 @@ ram_block_dev::ram_block_dev(size_t size, uint16_t block_size)
     : m_blk_size(block_size), m_memory(new char[size]), m_capacity(size)
 {
 }
+
+size_t ram_block_dev::capacity() const
+{
+    return m_capacity;
+}
+ram_block_dev::~ram_block_dev()
+{
+    delete[] m_memory;
+}
 }

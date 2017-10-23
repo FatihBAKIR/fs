@@ -25,7 +25,6 @@ public:
      */
     block_ptr load(config::sector_id_t id);
 
-
 private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;

@@ -7,7 +7,7 @@
 #include <stdexcept>
 namespace fs
 {
-struct translation_error : std::runtime_error
+struct id_translation_error : std::runtime_error
 {
     using std::runtime_error::runtime_error;
 };
