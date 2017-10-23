@@ -8,13 +8,22 @@
 #include <fs270/contiguous_data.hpp>
 namespace fs
 {
+enum class inode_flags : uint8_t
+{
+    directory = 1,
+    symlink = 2
+};
+
 /**
  * inode only data that's read and written from/to the disk
  */
 struct inode_data
 {
-    uint32_t m_file_size;
-    uint8_t m_refcnt;
+    int32_t file_size;
+    uint8_t ref_cnt;
+    inode_flags flags;
+    int32_t owner;
+    int32_t group;
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
@@ -33,23 +42,23 @@ public:
      * Size of the file in bytes
      * @return size of the file
      */
-    auto size() const
-    { return m_data.m_file_size; }
+    int32_t size() const
+    { return m_data.file_size; }
 
     /**
      * Current capacity of the underlying contiguous file
      * Until this capacity is exhausted, no new block allocations are required
      * @return The capacity of the underlying blocks in total bytes
      */
-    auto capacity() const
-    { return m_blocks.get_block_count(); };
+    int32_t capacity() const
+    { return m_blocks.get_capacity(); };
 
     /**
      * Number of hardlinks pointing to this inode
      * @return Number of hardlinks
      */
-    auto get_hardlinks() const
-    { return m_data.m_refcnt; }
+    uint8_t get_hardlinks() const
+    { return m_data.ref_cnt; }
 };
 }
 

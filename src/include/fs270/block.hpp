@@ -25,21 +25,28 @@ class block
 public:
 
     /**
-     * Returns a pointer to an object at the beginning of the block
+     * Returns a pointer to an object at the given offset of the block
      * Using this method marks the block as modified and triggers a writeback before deletion
      * If you need read-only access to the buffer, use `const T` instead of `T`
      * @tparam T Type of the returned pointer
+     * @param offset Offset from the beginning of the block
      * @return Pointer to the object
      */
-    template <class T = char> T* data();
+    template <class T = char> T* data(int offset = 0);
 
     /**
-     * Returns a pointer to an object at the beginning of the block
+     * Returns a pointer to an object at the given offset of the block
      * This overload does not mark the block as modified
      * @tparam T Type of the returned pointer
+     * @param offset Offset from the beginning of the block
      * @return Pointer to the object
      */
-    template <class T = char> const T* data() const;
+    template <class T = char> const T* data(int offset = 0) const;
+
+    /**
+     * Force an early flush to disk
+     */
+    void flush();
 
 private:
     config::sector_id_t m_id;
@@ -49,40 +56,39 @@ private:
     std::unique_ptr<uint8_t[]> m_data;
 
     friend class block_cache;
-    friend class id_comparator;
     friend void intrusive_ptr_add_ref(block* b);
     friend void intrusive_ptr_release(block* b);
 
     template <class T>
-    T* data_impl(std::false_type);
+    T* data_impl(int offset, std::false_type);
 
     template <class T>
-    const T* data_impl(std::true_type) const;
+    const T* data_impl(int offset, std::true_type) const;
 };
 
 template<class T>
-T *block::data_impl(std::false_type)
+T *block::data_impl(int offset, std::false_type)
 {
     m_writeback = true;
-    return reinterpret_cast<T*>(m_data.get());
+    return reinterpret_cast<T*>(m_data.get() + offset);
 }
 
 template<class T>
-const T *block::data_impl(std::true_type) const
+const T *block::data_impl(int offset, std::true_type) const
 {
-    return reinterpret_cast<const T*>(m_data.get());
+    return reinterpret_cast<const T*>(m_data.get() + offset);
 }
 
-template<class T = char> T *block::data()
+template<class T = char> T *block::data(int offset)
 {
     static_assert(std::is_trivially_copyable<T>{}, "T Must be a trivially copyable type!");
-    return data_impl<T>(std::is_const<T>{});
+    return data_impl<T>(offset, std::is_const<T>{});
 }
 
-template<class T = char> const T *block::data() const
+template<class T = char> const T *block::data(int offset) const
 {
     static_assert(std::is_trivially_copyable<T>{}, "T Must be a trivially copyable type!");
-    return data_impl<T>(std::is_const<T>{});
+    return data_impl<T>(offset, std::is_const<T>{});
 }
 
 class block;

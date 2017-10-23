@@ -13,11 +13,18 @@ void intrusive_ptr_add_ref(block *b)
 }
 void intrusive_ptr_release(block *b)
 {
-    if (b->m_refcnt == 1)
+    if (--b->m_refcnt == 0)
     {
         b->m_cache->finalize(b);
-        return;
     }
-    b->m_refcnt--;
 }
+
+void block::flush()
+{
+    if (m_writeback)
+    {
+        m_cache->flush(this);
+    }
+}
+
 }

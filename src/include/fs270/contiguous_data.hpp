@@ -71,13 +71,18 @@ public:
      */
     void pop_block();
 
+    /**
+     * Total number of bytes this file can store
+     * @return Number of bytes
+     */
+    int32_t get_capacity() const;
+
 private:
     detail::contiguous_data m_data;
-    config::block_dev_type* m_device;
     block_cache* m_cache;
 
     cont_file(const detail::contiguous_data& data, config::block_dev_type* dev)
-        : m_data(data), m_device(dev), m_cache(get_cache(*dev)) {};
+        : m_data(data), m_cache(get_cache(*dev)) {};
 
     friend cont_file read_cont_file(config::block_dev_type *device, config::address_t addr);
     friend void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &);
