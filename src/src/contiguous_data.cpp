@@ -10,31 +10,25 @@
 
 namespace fs
 {
-cont_file read(config::block_dev_type *device, config::address_t addr)
+cont_file read_cont_file(config::block_dev_type *device, config::address_t addr)
 {
     auto blk_index = addr / device->get_block_size();
     auto offset = addr % device->get_block_size();
-    std::vector<char> buffer(device->get_block_size());
-    device->read(blk_index, buffer.data());
-
-    auto ptr = reinterpret_cast<detail::contiguous_data*>(buffer.data() + offset);
+    auto buf = get_cache(*device)->load(blk_index);
+    auto ptr = reinterpret_cast<detail::contiguous_data*>(buf->data() + offset);
     return { *ptr, device };
 }
 
-void write(config::block_dev_type *device, config::address_t addr, const cont_file & file)
+void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &file)
 {
     auto blk_index = addr / device->get_block_size();
     auto offset = addr % device->get_block_size();
-    std::vector<char> buffer(device->get_block_size());
-    device->read(blk_index, buffer.data());
-
-    auto ptr = reinterpret_cast<detail::contiguous_data*>(buffer.data() + offset);
+    auto buf = get_cache(*device)->load(blk_index);
+    auto ptr = reinterpret_cast<detail::contiguous_data*>(buf->data() + offset);
     *ptr = file.m_data;
-
-    device->write(blk_index, buffer.data());
 }
 
-cont_file create(config::block_dev_type* device)
+cont_file create_cont_file(config::block_dev_type *device)
 {
     detail::contiguous_data data;
     data.block_count = 0;
@@ -55,7 +49,7 @@ detail::calc_path(config::sector_id_t id, const contiguous_data& data, uint16_t 
 {
     if (id >= data.block_count)
     {
-        throw translation_error("Given virtual index cannot be translated!");
+        throw id_translation_error("Given virtual index cannot be translated!");
     }
 
     int ptrs_per_block = blksize / sizeof (config::sector_id_t);
