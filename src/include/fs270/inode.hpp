@@ -8,7 +8,7 @@
 #include <fs270/contiguous_data.hpp>
 namespace fs
 {
-enum class inode_flags : uint8_t
+enum class inode_flags: uint8_t
 {
     directory = 1,
     symlink = 2
@@ -24,6 +24,8 @@ struct inode_data
     inode_flags flags;
     int32_t owner;
     int32_t group;
+    time_t mod_time;
+    time_t creat_time;
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
@@ -33,8 +35,9 @@ static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyab
  */
 class inode
 {
+    //TODO: add allocator here
     inode_data m_data;
-    cont_file  m_blocks;
+    cont_file m_blocks;
 
 public:
 
@@ -60,7 +63,28 @@ public:
     uint8_t get_hardlinks() const
     { return m_data.ref_cnt; }
 
+    /**
+     * Increment the number of directory entries pointing to this inode
+     */
+    void increment_ref()
+    { m_data.ref_cnt++; }
+
+    /**
+     * Decrement the number of directory entries pointing to this inode
+     */
+    void decrement_ref()
+    { m_data.ref_cnt--; }
+
+    /**
+     * Sets the owner user id of this file
+     * @param user_id id of the owner
+     */
     void set_owner(int32_t user_id);
+
+    /**
+     * Returns the id of the owner user
+     * @return owner user's id
+     */
     int32_t get_owner() const;
 
     /**
@@ -70,7 +94,22 @@ public:
      */
     void truncate(int32_t new_size);
 
+    /**
+     * Reads `len` bytes starting at `from` to the buffer pointed by `buf`
+     * @param from start index on file
+     * @param buf buffer to copy into
+     * @param len length of the buffer
+     * @return number of bytes read
+     */
+    int32_t read(uint32_t from, void *buf, int32_t len);
 
+    /**
+     * Writes `len` bytes starting at `from` from the buffer pointed by `buf`
+     * @param from start index on file
+     * @param buf buffer to copy from
+     * @param len length of the buffer
+     */
+    void write(uint32_t from, const void *buf, int32_t len);
 };
 
 /**
@@ -79,7 +118,7 @@ public:
  * @param at address of the inode in device
  * @return inode at the address
  */
-inode read_inode(block_cache* cache, config::address_t at);
+inode read_inode(block_cache *cache, config::address_t at);
 
 /**
  * Writes the given inode to the device at the given address
@@ -87,13 +126,13 @@ inode read_inode(block_cache* cache, config::address_t at);
  * @param at address in device to write the inode to
  * @param inode inode to write to
  */
-void write_inode(block_cache* cache, config::address_t at, const inode& inode);
+void write_inode(block_cache *cache, config::address_t at, const inode &inode);
 
 /**
  * Creates an empty inode associated with the given device
  * @param cache block cache for the device
  * @return empty inode
  */
-inode create_inode(block_cache* cache);
+inode create_inode(block_cache *cache);
 }
 
