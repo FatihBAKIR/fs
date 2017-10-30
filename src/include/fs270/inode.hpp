@@ -59,6 +59,41 @@ public:
      */
     uint8_t get_hardlinks() const
     { return m_data.ref_cnt; }
+
+    void set_owner(int32_t user_id);
+    int32_t get_owner() const;
+
+    /**
+     * Sets the size for the file of this inode
+     * If the size is greater than the current size, the gap will be zero filled
+     * @param new_size size to set
+     */
+    void truncate(int32_t new_size);
+
+
 };
+
+/**
+ * Reads an inode at the given address from the given device
+ * @param cache block cache for the device
+ * @param at address of the inode in device
+ * @return inode at the address
+ */
+inode read_inode(block_cache* cache, config::address_t at);
+
+/**
+ * Writes the given inode to the device at the given address
+ * @param cache block cache for the device
+ * @param at address in device to write the inode to
+ * @param inode inode to write to
+ */
+void write_inode(block_cache* cache, config::address_t at, const inode& inode);
+
+/**
+ * Creates an empty inode associated with the given device
+ * @param cache block cache for the device
+ * @return empty inode
+ */
+inode create_inode(block_cache* cache);
 }
 

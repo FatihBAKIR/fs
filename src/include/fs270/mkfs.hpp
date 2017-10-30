@@ -10,7 +10,6 @@ namespace fs
 {
 struct fs_parameters
 {
-    int max_inodes;
 };
 
 void make_fs(config::block_dev_type& dev, const fs_parameters& params);

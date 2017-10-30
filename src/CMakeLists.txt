@@ -35,4 +35,4 @@ add_library(fs_mkfs src/mkfs.cpp include/fs270/mkfs.hpp)
 target_link_libraries(fs_mkfs PUBLIC fs_interface)
 
 add_executable(mkfs src/mkfs_driver.cpp)
-target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode)
+target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs)
