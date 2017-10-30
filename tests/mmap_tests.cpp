@@ -4,6 +4,7 @@
 
 #include <catch.hpp>
 #include <fs270/mmap_block_dev.hpp>
+#include <array>
 
 TEST_CASE("mmap blk dev", "[fs][mmap]")
 {
