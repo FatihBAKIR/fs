@@ -11,7 +11,7 @@ namespace fs
     {
         if (inode_id >= m_superblk.total_inodes)
         {
-            throw inode_not_found("inode with id " + std::to_string(inode_id) + " doesn't exist!");
+            throw inode_not_found(inode_id);
         }
 
         auto inodes_per_block = m_device.get_block_size() / (sizeof(inode_data) + sizeof(cont_file));

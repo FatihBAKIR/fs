@@ -24,6 +24,7 @@ struct inode_data
     int32_t file_size;
     uint8_t ref_cnt;
     inode_flags flags;
+    uint8_t permissions;
     int32_t owner;
     int32_t group;
     time_t mod_time;

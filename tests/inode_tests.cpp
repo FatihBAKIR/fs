@@ -7,5 +7,4 @@
 
 TEST_CASE("inode basics", "[fs][inode]")
 {
-
 }
