@@ -52,4 +52,12 @@ block_cache *get_cache(config::block_dev_type &device)
     it = caches.emplace(reinterpret_cast<uintptr_t>(&device), block_cache(device)).first;
     return &it->second;
 }
+
+    void block_cache::sync()
+    {
+        for (auto& cached : m_cache)
+        {
+            flush(&cached.second);
+        }
+    }
 }

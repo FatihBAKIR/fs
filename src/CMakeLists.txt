@@ -34,5 +34,8 @@ target_link_libraries(fs_inode PUBLIC fs_interface fs_cont_data)
 add_library(fs_mkfs src/mkfs.cpp include/fs270/mkfs.hpp)
 target_link_libraries(fs_mkfs PUBLIC fs_interface)
 
+add_library(fs_instance src/fs_instance.cpp include/fs270/fs_instance.hpp)
+target_link_libraries(fs_instance PUBLIC fs_interface fs_inode)
+
 add_executable(mkfs src/mkfs_driver.cpp)
 target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs)

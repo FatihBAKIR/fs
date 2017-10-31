@@ -6,6 +6,8 @@
 
 #include <cstdint>
 #include <fs270/contiguous_data.hpp>
+#include <chrono>
+
 namespace fs
 {
 enum class inode_flags: uint8_t
@@ -26,21 +28,19 @@ struct inode_data
     int32_t group;
     time_t mod_time;
     time_t creat_time;
+    time_t access_time;
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
+
+class fs_instance;
 
 /**
  * This class implements the necessary inode functionalities needed
  */
 class inode
 {
-    //TODO: add allocator here
-    inode_data m_data;
-    cont_file m_blocks;
-
 public:
-
     /**
      * Size of the file in bytes
      * @return size of the file
@@ -66,13 +66,13 @@ public:
     /**
      * Increment the number of directory entries pointing to this inode
      */
-    void increment_ref()
+    void increment_hardlinks()
     { m_data.ref_cnt++; }
 
     /**
      * Decrement the number of directory entries pointing to this inode
      */
-    void decrement_ref()
+    void decrement_hardlinks()
     { m_data.ref_cnt--; }
 
     /**
@@ -86,6 +86,18 @@ public:
      * @return owner user's id
      */
     int32_t get_owner() const;
+
+    /**
+     * Sets the group id of this file
+     * @param group_id group id
+     */
+    void set_group(int32_t group_id);
+
+    /**
+     * Returns the group id of this file
+     * @return group id
+     */
+    int32_t get_group() const;
 
     /**
      * Sets the size for the file of this inode
@@ -110,6 +122,54 @@ public:
      * @param len length of the buffer
      */
     void write(uint32_t from, const void *buf, int32_t len);
+
+    using clock = std::chrono::system_clock;
+
+    /**
+     * Returns the time of the last modification to the file related with this inode
+     * @return modification time
+     */
+    clock::time_point get_modification_time() const;
+
+    /**
+     * Returns the time of the creation of the file related with this inode
+     * @return creation time
+     */
+    clock::time_point get_creation_time() const;
+
+    /**
+     * Returns the time of the latest access to the file related with this inode
+     * @return access time
+     */
+    clock::time_point get_access_time() const;
+
+private:
+    //TODO: add allocator here
+    inode_data m_data;
+    cont_file m_blocks;
+    fs_instance* m_fs;
+    int m_refcnt;
+
+    /**
+     * Sets the latest update time of this inode to the current time
+     */
+    void update_mod_time();
+
+    /**
+     * Sets the access time of this inode to the current time
+     */
+    void update_access_time();
+
+    /**
+     * Sets the times of this inode
+     * @param create creation time
+     * @param mod modification time
+     * @param access access time
+     */
+    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
+
+    friend void intrusive_ptr_add_ref(inode* n);
+    friend void intrusive_ptr_release(inode* n);
 };
 
 /**

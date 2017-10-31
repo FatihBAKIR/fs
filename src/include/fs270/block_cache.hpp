@@ -12,7 +12,6 @@
 
 namespace fs
 {
-
 class block_cache
 {
 public:
@@ -30,6 +29,12 @@ public:
      * @return Underlying device
      */
     const config::block_dev_type* device() const { return m_device; }
+
+    /**
+     * Synchronizes the current state to the disk
+     * Flushes everything in the cache
+     */
+    void sync();
 private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;
