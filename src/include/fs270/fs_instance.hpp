@@ -5,7 +5,7 @@
 #pragma once
 
 #include <fs270/inode.hpp>
-#include "superblock.hpp"
+#include <fs270/superblock.hpp>
 
 namespace fs
 {
@@ -24,8 +24,13 @@ namespace fs
         inode_ptr find_inode(int32_t inode_id);
 
     private:
+        //TODO: ADD ALLOCATOR
         superblock m_superblk;
+
+        cont_file m_ilist;
+
         config::block_dev_type m_device;
+        block_cache* m_cache;
 
     public:
 

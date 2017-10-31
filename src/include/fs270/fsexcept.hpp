@@ -11,4 +11,9 @@ struct id_translation_error : std::runtime_error
 {
     using std::runtime_error::runtime_error;
 };
+
+struct inode_not_found : std::runtime_error
+{
+    using std::runtime_error::runtime_error;
+};
 }
