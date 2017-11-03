@@ -27,7 +27,10 @@ namespace fs
         //TODO: ADD ALLOCATOR
         superblock m_superblk;
 
-        cont_file m_ilist;
+        /**
+         * Store ilist as an inode so that we can grow/shrink it easily
+         */
+        inode m_ilist;
 
         config::block_dev_type m_device;
         block_cache* m_cache;

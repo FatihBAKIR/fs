@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <string>
 namespace fs
 {
 struct id_translation_error : std::runtime_error

@@ -9,7 +9,7 @@ namespace fs
 {
     inode_ptr fs_instance::find_inode(int32_t inode_id)
     {
-        if (inode_id >= m_superblk.total_inodes)
+        if (inode_id >= 0)
         {
             throw inode_not_found(inode_id);
         }

@@ -14,7 +14,6 @@ struct superblock
     config::address_t ilist_address;
 
     uint32_t total_blocks;
-    uint32_t total_inodes;
     uint32_t block_size;
 };
 }

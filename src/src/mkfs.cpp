@@ -5,6 +5,7 @@
 #include <fs270/mkfs.hpp>
 #include <fs270/superblock.hpp>
 #include <fs270/contiguous_data.hpp>
+#include <fs270/inode.hpp>
 
 namespace fs
 {
@@ -30,7 +31,6 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
     sb.allocator_data_address = sizeof(superblock);
     sb.block_size = blk_size;
     sb.total_blocks = total_blocks;
-    sb.total_inodes = 0;
     sb.ilist_address = sizeof(superblock) + 128;
 
     config::sector_id_t allocator = 1;
@@ -40,8 +40,8 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
 
     //TODO: INITIALIZE ALLOCATOR HERE
 
-    auto ilist_cont_file = create_cont_file(&dev);
-    write_cont_file(&dev, sb.ilist_address, ilist_cont_file);
+    //auto ilist_inode = create_inode(get_cache(dev));
+    //write_inode(get_cache(dev), sb.ilist_address, ilist_inode);
 
     auto cache = get_cache(dev);
 

@@ -70,13 +70,13 @@ template<class T>
 T *block::data_impl(int offset, std::false_type)
 {
     m_writeback = true;
-    return reinterpret_cast<T*>(m_data.get() + offset);
+    return reinterpret_cast<T*>(m_data.get() + offset + 512);
 }
 
 template<class T>
 const T *block::data_impl(int offset, std::true_type) const
 {
-    return reinterpret_cast<const T*>(m_data.get() + offset);
+    return reinterpret_cast<const T*>(m_data.get() + offset + 512);
 }
 
 template<class T> T *block::data(int offset)

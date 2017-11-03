@@ -20,7 +20,6 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     auto sb = first_blk->data<fs::superblock>();
 
     REQUIRE(sb->block_size == 4096);
-    REQUIRE(sb->total_inodes == 0);
     REQUIRE(sb->total_blocks == (10 * 1024 * 1024) / 4096);
     REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128);
     REQUIRE(sb->allocator_data_address == sizeof(fs::superblock));
@@ -29,7 +28,6 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
 
     REQUIRE(alloc_file.get_capacity() == 0);
 
-    auto ilist_file = fs::read_cont_file(&blk_dev, sb->ilist_address);
-
-    REQUIRE(ilist_file.get_capacity() == 0);
+    //auto ilist_file = fs::read_cont_file(&blk_dev, sb->ilist_address);
+    //REQUIRE(ilist_file.get_capacity() == 0);
 }
