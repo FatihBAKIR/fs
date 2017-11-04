@@ -21,6 +21,7 @@ namespace detail
 struct contiguous_data
 {
     int32_t block_count;
+    int32_t pushable_count;
     std::array<config::block_dev_type::sector_id_t, config::direct_pointers>
         direct_blocks;
     std::array<config::block_dev_type::sector_id_t, config::first_indirects>
@@ -60,8 +61,16 @@ public:
     int32_t get_block_count() const;
 
     /**
+     * Calculates the number of blocks that can be pushed to the list
+     * without requiring an indirect block allocation
+     * @return number of blocks that can be pushed
+     */
+    int32_t get_pushable_count() const;
+
+    /**
      * Pushes the given sector id to the back of the list
      * @param id id to append
+     * @return whether the push required an indirect block allocation
      */
     bool push_block(config::block_dev_type::sector_id_t id);
 
@@ -69,7 +78,7 @@ public:
      * Contiguous file uses the given block as an indirect block
      * @param id block for the indirect block
      */
-    bool alloc_indirect_block(config::block_dev_type::sector_id_t id);
+    void alloc_indirect_block(config::block_dev_type::sector_id_t id);
 
     /**
      * Pops the last sector id from the list

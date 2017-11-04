@@ -39,12 +39,25 @@ TEST_CASE("cont file large", "[fs][cont_file]")
         REQUIRE(file.push_block(i + 100));
     }
 
-    for (int i = 5; i < 25; ++i)
+    for (int i = 6; i < 25; ++i)
     {
         REQUIRE_FALSE(file.push_block(i + 100));
     }
 
+    int k = 0;
+    while(file.get_pushable_count() < 25000)
+    {
+        file.alloc_indirect_block(2000 + k++);
+    }
+
+    for (int i = 6; i < 25000; ++i)
+    {
+        REQUIRE(file.push_block(i + 100));
+    }
+
     REQUIRE(file.get_actual_block(5) == 105);
+    REQUIRE(file.get_actual_block(6) == 106);
+    REQUIRE(file.get_actual_block(24000) == 24100);
 }
 
 TEST_CASE("cont file capacity", "[fs][cont_file]")
@@ -75,11 +88,11 @@ TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);
 
-        write_cont_file(&dev, 10, file);
+        write_cont_file(&dev, 10000, file);
     }
 
     {
-        fs::cont_file file = read_cont_file(&dev, 10);
+        fs::cont_file file = read_cont_file(&dev, 10000);
         REQUIRE(file.get_block_count() == 2);
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);
