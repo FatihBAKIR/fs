@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(src)
 
 set(SOURCE_FILES
-        include/fs270/bitmap_allocator.hpp
         include/fs270/config.hpp
         include/fs270/superblock.hpp
         include/fs270/fs_fwd.hpp
@@ -36,6 +35,9 @@ target_link_libraries(fs_mkfs PUBLIC fs_interface)
 
 add_library(fs_instance src/fs_instance.cpp include/fs270/fs_instance.hpp)
 target_link_libraries(fs_instance PUBLIC fs_interface fs_inode)
+
+add_library(fs_bm_alloc src/bitmap_allocator.cpp include/fs270/bitmap_allocator.hpp)
+target_link_libraries(fs_bm_alloc PUBLIC fs_interface fs_blk_cache)
 
 add_executable(mkfs src/mkfs_driver.cpp)
 target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs)
