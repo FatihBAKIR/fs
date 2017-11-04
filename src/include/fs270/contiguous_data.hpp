@@ -61,9 +61,15 @@ public:
 
     /**
      * Pushes the given sector id to the back of the list
-     * @param id Id to append
+     * @param id id to append
      */
-    void push_block(config::block_dev_type::sector_id_t id);
+    bool push_block(config::block_dev_type::sector_id_t id);
+
+    /**
+     * Contiguous file uses the given block as an indirect block
+     * @param id block for the indirect block
+     */
+    bool alloc_indirect_block(config::block_dev_type::sector_id_t id);
 
     /**
      * Pops the last sector id from the list

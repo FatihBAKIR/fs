@@ -5,11 +5,19 @@
 #include <fs270/block_cache.hpp>
 #include <fs270/block.hpp>
 #include <iostream>
+#include <fs270/fsexcept.hpp>
 
 namespace fs
 {
 block_ptr block_cache::load(config::sector_id_t id)
 {
+#if !defined(NDEBUG)
+    if (id == 0)
+    {
+        throw null_block_exception();
+    }
+#endif
+
     auto it = m_cache.find(id);
     if (it != m_cache.end())
     {

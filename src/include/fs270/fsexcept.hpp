@@ -23,4 +23,8 @@ struct inode_not_found : std::runtime_error
         not_found_id = id;
     }
 };
+
+struct null_block_exception
+{
+};
 }

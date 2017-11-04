@@ -116,29 +116,44 @@ config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtu
     }
 }
 
-void cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
+bool cont_file::push_block(config::block_dev_type::sector_id_t physical_id)
 {
     auto v_id = m_data.block_count++;
     auto path = calc_path(v_id);
+
+    //TODO: allocate indirect blocks as necessary
     switch (path.size())
     {
     case 1:
     {
         m_data.direct_blocks[path[0]] = physical_id;
-        return;
+        return true;
     }
     case 2:
     {
+        if (path[0] == config::nullsect)
+        {
+            return false;
+        }
+
         auto buf = m_cache->load(path[0]);
         buf->data<config::sector_id_t>()[path[1]] = physical_id;
-        return;
+        return true;
     }
     case 3:
     {
+        if (path[0] == config::nullsect)
+        {
+            return false;
+        }
         auto buf = m_cache->load(m_data.first_indirect_blocks[path[0]]);
+        if (buf->data<const config::sector_id_t>()[path[1]] == config::nullsect)
+        {
+            return false;
+        }
         buf = m_cache->load(buf->data<const config::sector_id_t>()[path[1]]);
         buf->data<config::sector_id_t>()[path[2]] = physical_id;
-        return;
+        return true;
     }
     default:
     {

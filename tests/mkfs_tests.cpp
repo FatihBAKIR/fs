@@ -15,14 +15,14 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     fs::make_fs(blk_dev, {});
 
     auto cache = get_cache(blk_dev);
-    auto first_blk = cache->load(0);
+    auto first_blk = cache->load(1);
 
     auto sb = first_blk->data<fs::superblock>();
 
     REQUIRE(sb->block_size == 4096);
     REQUIRE(sb->total_blocks == (10 * 1024 * 1024) / 4096);
-    REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128);
-    REQUIRE(sb->allocator_data_address == sizeof(fs::superblock));
+    REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128 + blk_dev.get_block_size());
+    REQUIRE(sb->allocator_data_address == sizeof(fs::superblock) + blk_dev.get_block_size());
 
     auto alloc_file = fs::read_cont_file(&blk_dev, sb->allocator_data_address);
 

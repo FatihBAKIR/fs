@@ -29,6 +29,24 @@ TEST_CASE("cont file", "[fs][cont_file]")
     REQUIRE_THROWS(file.get_actual_block(1));
 }
 
+TEST_CASE("cont file large", "[fs][cont_file]")
+{
+    fs::ram_block_dev dev(10 * 10 * 1024 * 1024, 4096);
+    fs::cont_file file = fs::create_cont_file(&dev);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        REQUIRE(file.push_block(i + 100));
+    }
+
+    for (int i = 5; i < 25; ++i)
+    {
+        REQUIRE_FALSE(file.push_block(i + 100));
+    }
+
+    REQUIRE(file.get_actual_block(5) == 105);
+}
+
 TEST_CASE("cont file capacity", "[fs][cont_file]")
 {
     fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
@@ -48,11 +66,11 @@ TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
     fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
     {
         fs::cont_file file = fs::create_cont_file(&dev);
-        file.push_block(3);
+        REQUIRE(file.push_block(3));
         REQUIRE(file.get_block_count() == 1);
         REQUIRE(file.get_actual_block(0) == 3);
 
-        file.push_block(12);
+        REQUIRE(file.push_block(12));
         REQUIRE(file.get_block_count() == 2);
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);

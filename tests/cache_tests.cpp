@@ -17,7 +17,7 @@ TEST_CASE("block cache", "[fs][cache]")
     dev.write(3, buffer.data());
 
     {
-        auto x = cache->load(3);
+        fs::block_ptr x = cache->load(3);
 
         {
             auto res = cache->load(3);
@@ -43,13 +43,13 @@ TEST_CASE("auto flush", "[fs][cache]")
     auto cache = get_cache(dev);
 
     {
-        fs::block_ptr x = cache->load(0);
+        fs::block_ptr x = cache->load(1);
         std::memcpy(x->data(), "hello world", 12);
         // data is written back to the device here
     }
 
     {
-        auto x = cache->load(0);
+        auto x = cache->load(1);
         REQUIRE(std::memcmp(x->data(), "hello world", 12) == 0);
     }
 }
