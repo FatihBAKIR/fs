@@ -31,7 +31,7 @@ TEST_CASE("cont file", "[fs][cont_file]")
 
 TEST_CASE("cont file large", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 10 * 1024 * 1024, 4096);
+    fs::ram_block_dev dev(100 * 1024 * 1024, 4096);
     fs::cont_file file = fs::create_cont_file(&dev);
 
     for (int i = 0; i < 6; ++i)
