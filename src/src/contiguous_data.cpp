@@ -80,12 +80,12 @@ namespace fs {
         return {};
     }
 
-    std::vector<config::sector_id_t> cont_file::calc_path(cont_file::virtual_block_id id)
+    std::vector<config::sector_id_t> cont_file::calc_path(cont_file::virtual_block_id id) const
     {
         return detail::calc_path(id, m_data, m_cache->device()->get_block_size());
     }
 
-    config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtual_block_id id)
+    config::block_dev_type::sector_id_t cont_file::get_actual_block(cont_file::virtual_block_id id) const
     {
         auto path = calc_path(id);
         switch (path.size()) {
