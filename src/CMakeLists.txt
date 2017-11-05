@@ -22,7 +22,9 @@ target_link_libraries(fs_cont_data PUBLIC fs_interface fs_blk_cache)
 
 find_package(Boost REQUIRED COMPONENTS system)
 
-add_library(fs_blk_cache src/block_cache.cpp include/fs270/block_cache.hpp src/block.cpp include/fs270/block.hpp)
+add_library(fs_blk_cache
+        src/block_cache.cpp include/fs270/block_cache.hpp
+        src/block.cpp include/fs270/block.hpp)
 target_link_libraries(fs_blk_cache PUBLIC fs_interface)
 target_link_libraries(fs_blk_cache PUBLIC ${Boost_LIBRARIES})
 target_include_directories(fs_blk_cache PUBLIC ${Boost_INCLUDE_DIR})

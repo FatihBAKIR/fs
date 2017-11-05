@@ -6,6 +6,7 @@
 #include <fs270/superblock.hpp>
 #include <fs270/contiguous_data.hpp>
 #include <fs270/inode.hpp>
+#include <fs270/bitmap_allocator.hpp>
 
 namespace fs
 {
@@ -40,10 +41,16 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
 
     //TODO: INITIALIZE ALLOCATOR HERE
 
+    auto cache = get_cache(dev);
+
+    auto alloc = fs::bitmap_allocator::create(cache, 2);
+    alloc.mark_used(0);
+    alloc.mark_used(1);
+    alloc.mark_used(total_blocks / 2);
+    alloc.mark_used(total_blocks - 1);
+
     //auto ilist_inode = create_inode(get_cache(dev));
     //write_inode(get_cache(dev), sb.ilist_address, ilist_inode);
-
-    auto cache = get_cache(dev);
 
     block_ptr sbs[3] = {
         cache->load(superblocks[0]),

@@ -92,6 +92,11 @@ namespace fs {
         int len = 0;
         while (len < num_blocks)
         {
+            if (begin + len >
+                    m_cache->device()->capacity() / m_cache->device()->get_block_size())
+            {
+                return fs::config::nullsect;
+            }
             if (!get(begin + len))
             {
                 ++len;
