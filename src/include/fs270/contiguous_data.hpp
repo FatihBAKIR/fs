@@ -52,7 +52,7 @@ public:
      * @param id File block index
      * @return Device sector index
      */
-    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id id);
+    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id id) const;
 
     /**
      * Returns the current number of blocks in the list
@@ -104,7 +104,7 @@ private:
 
     friend cont_file create_cont_file(config::block_dev_type *device);
 
-    std::vector<config::sector_id_t> calc_path(virtual_block_id);
+    std::vector<config::sector_id_t> calc_path(virtual_block_id) const;
 };
 
 /**
