@@ -150,6 +150,7 @@ namespace fs {
             throw std::runtime_error("nope");
         }
         }
+        return true;
     }
 
     void cont_file::alloc_indirect_block(config::block_dev_type::sector_id_t id)
