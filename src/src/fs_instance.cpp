@@ -24,4 +24,25 @@ namespace fs
 
 
     }
+
+    void fs_instance::inode_return(inode* inode) {
+        return;
+    }
+
+    inode* fs_instance::create_inode() { // should this take data as an arg?
+        return NULL;
+    }
+
+    void fs_instance::add_inode(inode* inode) {
+        return;
+    }
+
+    void fs_instance::get_inode(int32_t inum) {
+        return;
+    }
+
+    void fs_instance::remove_inode(int32_t inum) {
+        return;
+    }
+
 }

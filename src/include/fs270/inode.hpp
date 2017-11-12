@@ -24,7 +24,7 @@ struct inode_data
     int32_t file_size;
     uint8_t ref_cnt;
     inode_flags flags;
-    uint8_t permissions;
+    uint16_t permissions;
     int32_t owner;
     int32_t group;
     time_t mod_time;
@@ -99,6 +99,9 @@ public:
      * @return group id
      */
     int32_t get_group() const;
+
+    void chmod(uint16_t per)
+    { m_data.permissions = per; }
 
     /**
      * Sets the size for the file of this inode

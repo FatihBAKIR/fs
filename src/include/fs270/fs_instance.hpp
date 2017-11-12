@@ -43,6 +43,14 @@ namespace fs
          * @param inode inode to finalize
          */
         void inode_return(inode* inode);
+
+        inode* create_inode(); // should this take data as an arg?
+
+        void add_inode(inode* inode);
+
+        void get_inode(int32_t inum);
+
+        void remove_inode(int32_t inum);
     };
 }
 
