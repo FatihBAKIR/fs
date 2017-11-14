@@ -4,6 +4,7 @@
 
 #include <fs270/inode.hpp>
 #include <fs270/fs_instance.hpp>
+#include <fs270/bitmap_allocator.hpp>
 
 namespace fs
 {
@@ -74,6 +75,20 @@ namespace fs
         if (n->m_refcnt == 0)
         {
             n->m_fs->inode_return(n);
+        }
+    }
+
+    void inode::truncate(int32_t new_size)
+    {
+        m_data.file_size = new_size;
+
+        auto needed_blk_count = new_size / m_fs->blk_cache()->device()->get_block_size();
+
+        for (int i = m_blocks.get_block_count() - needed_blk_count;
+             i < m_blocks.get_block_count();
+             ++i)
+        {
+            m_fs->allocator()->free(m_blocks.get_actual_block(i), 1);
         }
     }
 }

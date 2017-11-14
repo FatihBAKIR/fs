@@ -24,7 +24,7 @@ struct inode_data
     int32_t file_size;
     uint8_t ref_cnt;
     inode_flags flags;
-    uint8_t permissions;
+    uint16_t permissions;
     int32_t owner;
     int32_t group;
     time_t mod_time;
@@ -145,7 +145,6 @@ public:
     clock::time_point get_access_time() const;
 
 private:
-    //TODO: add allocator here
     inode_data m_data;
     cont_file m_blocks;
     fs_instance* m_fs;

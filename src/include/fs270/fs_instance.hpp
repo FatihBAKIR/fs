@@ -23,6 +23,17 @@ namespace fs
          */
         inode_ptr find_inode(int32_t inode_id);
 
+        /**
+         * Returns the allocator for this file system
+         * @return the allocator
+         */
+        bitmap_allocator* allocator() { return m_alloc; }
+
+        block_cache* blk_cache() { return m_cache; }
+
+
+        void put_inode(const inode& in, int index);
+
     private:
         //TODO: ADD ALLOCATOR
         superblock m_superblk;
@@ -32,6 +43,7 @@ namespace fs
          */
         inode m_ilist;
 
+        bitmap_allocator* m_alloc;
         config::block_dev_type m_device;
         block_cache* m_cache;
 

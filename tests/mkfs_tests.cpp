@@ -36,10 +36,22 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     alloc.free(f_blocks, 5);
     alloc.free(o_block, 1);
 
+    std::set<fs::config::sector_id_t> allocd;
+    allocd.insert(0);
+    allocd.insert(1);
+    allocd.insert(2);
+    allocd.insert(blk_dev.capacity() / blk_dev.get_block_size() - 1);
+    allocd.insert((blk_dev.capacity() / blk_dev.get_block_size())/2);
     fs::config::sector_id_t id;
     while ((id = alloc.alloc(1)) != fs::config::nullsect)
     {
-        REQUIRE((id != 1 && id != 2));
+        REQUIRE(allocd.find(id) == allocd.end());
+        allocd.insert(id);
+    }
+
+    for (int i = 0; i < blk_dev.capacity()/ blk_dev.get_block_size(); ++i)
+    {
+        REQUIRE(allocd.find(i) != allocd.end());
     }
 
     //auto ilist_file = fs::read_cont_file(&blk_dev, sb->ilist_address);

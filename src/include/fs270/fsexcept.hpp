@@ -24,7 +24,7 @@ struct inode_not_found : std::runtime_error
     }
 };
 
-struct null_block_exception
-{
-};
+struct null_block_exception { };
+
+struct double_free {};
 }

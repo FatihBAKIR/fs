@@ -5,6 +5,7 @@
 #include <fs270/bitmap_allocator.hpp>
 #include <cstring>
 #include <cmath>
+#include <fs270/fsexcept.hpp>
 
 namespace fs {
     bitmap_allocator::bitmap_allocator(block_cache* cache, config::sector_id_t start_sector)
@@ -22,7 +23,7 @@ namespace fs {
         auto buffer = blk->data<uint64_t>();
         auto& word = buffer[word_offset];
 
-        return bool(word & (1 << bit_in_word));
+        return bool(word & (1LL << bit_in_word));
     }
 
     void bitmap_allocator::set(config::sector_id_t id, bool val)
@@ -38,10 +39,10 @@ namespace fs {
         auto& word = buffer[word_offset];
 
         if (val) {
-            word |= (1 << bit_in_word);
+            word |= (1LL << bit_in_word);
         }
         else {
-            word &= ~(1 << bit_in_word);
+            word &= ~(1LL << bit_in_word);
         }
     }
 
@@ -119,6 +120,10 @@ namespace fs {
         // this can be optimized
         for (int i = 0; i < num_blocks; ++i)
         {
+            if (get(i + from) == false)
+            {
+                throw fs::double_free{};
+            }
             set(i + from, false);
         }
     }

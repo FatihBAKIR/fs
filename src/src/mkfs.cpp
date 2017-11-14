@@ -39,8 +39,6 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
     auto alloc_cont_file = create_cont_file(&dev);
     write_cont_file(&dev, sb.allocator_data_address, alloc_cont_file);
 
-    //TODO: INITIALIZE ALLOCATOR HERE
-
     auto cache = get_cache(dev);
 
     auto alloc = fs::bitmap_allocator::create(cache, 2);
