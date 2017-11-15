@@ -100,6 +100,9 @@ public:
      */
     int32_t get_group() const;
 
+    void chmod(uint16_t per)
+    { m_data.permissions = per; }
+
     /**
      * Sets the size for the file of this inode
      * If the size is greater than the current size, the gap will be zero filled
