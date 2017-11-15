@@ -31,6 +31,12 @@ public:
     const config::block_dev_type* device() const { return m_device; }
 
     /**
+     * Gets the underlying device
+     * @return Underlying device
+     */
+    config::block_dev_type* device() { return m_device; }
+
+    /**
      * Synchronizes the current state to the disk
      * Flushes everything in the cache
      */

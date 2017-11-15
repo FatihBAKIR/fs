@@ -23,7 +23,6 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     REQUIRE(sb->block_size == 4096);
     REQUIRE(sb->total_blocks == blk_dev.capacity() / 4096);
     REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128 + blk_dev.get_block_size());
-    REQUIRE(sb->allocator_data_address == sizeof(fs::superblock) + blk_dev.get_block_size());
 
     auto alloc = fs::bitmap_allocator::load(get_cache(blk_dev), 2);
 

@@ -36,7 +36,7 @@ add_library(fs_mkfs src/mkfs.cpp include/fs270/mkfs.hpp)
 target_link_libraries(fs_mkfs PUBLIC fs_interface fs_blk_cache)
 
 add_library(fs_instance src/fs_instance.cpp include/fs270/fs_instance.hpp)
-target_link_libraries(fs_instance PUBLIC fs_interface fs_inode )
+target_link_libraries(fs_instance PUBLIC fs_interface fs_inode)
 
 add_library(fs_bm_alloc src/bitmap_allocator.cpp include/fs270/bitmap_allocator.hpp)
 target_link_libraries(fs_bm_alloc PUBLIC fs_interface fs_blk_cache)

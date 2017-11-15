@@ -29,15 +29,11 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
     superblocks[2] = total_blocks - 1;
 
     superblock sb;
-    sb.allocator_data_address = sizeof(superblock) + blk_size;
     sb.block_size = blk_size;
     sb.total_blocks = total_blocks;
     sb.ilist_address = sizeof(superblock) + 128 + blk_size;
 
     config::sector_id_t allocator = 1;
-
-    auto alloc_cont_file = create_cont_file(&dev);
-    write_cont_file(&dev, sb.allocator_data_address, alloc_cont_file);
 
     auto cache = get_cache(dev);
 
@@ -49,6 +45,8 @@ void make_fs(config::block_dev_type &dev, const fs_parameters &params)
 
     //auto ilist_inode = create_inode(get_cache(dev));
     //write_inode(get_cache(dev), sb.ilist_address, ilist_inode);
+
+    detail::create_raw(cache, sb.ilist_address);
 
     block_ptr sbs[3] = {
         cache->load(superblocks[0]),

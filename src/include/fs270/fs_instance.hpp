@@ -6,6 +6,8 @@
 
 #include <fs270/inode.hpp>
 #include <fs270/superblock.hpp>
+#include <fs270/bitmap_allocator.hpp>
+#include <memory>
 
 namespace fs
 {
@@ -27,26 +29,29 @@ namespace fs
          * Returns the allocator for this file system
          * @return the allocator
          */
-        bitmap_allocator* allocator() { return m_alloc; }
+        bitmap_allocator* allocator() { return m_alloc.get(); }
 
         block_cache* blk_cache() { return m_cache; }
 
-
-        void put_inode(const inode& in, int index);
-
+        /**
+         * Loads the filesystem from the given block device
+         * @param dev device to load the filesystem from
+         * @return the loaded filesystem
+         */
+        static fs_instance load(std::unique_ptr<config::block_dev_type> dev);
     private:
-        //TODO: ADD ALLOCATOR
         superblock m_superblk;
 
         /**
          * Store ilist as an inode so that we can grow/shrink it easily
          */
-        inode m_ilist;
+        std::unique_ptr<inode> m_ilist;
 
-        bitmap_allocator* m_alloc;
-        config::block_dev_type m_device;
+        std::unique_ptr<bitmap_allocator> m_alloc;
+        std::unique_ptr<config::block_dev_type> m_device;
         block_cache* m_cache;
 
+        explicit fs_instance(std::unique_ptr<config::block_dev_type> dev);
     public:
 
         /**
@@ -56,5 +61,6 @@ namespace fs
          */
         void inode_return(inode* inode);
     };
+
 }
 

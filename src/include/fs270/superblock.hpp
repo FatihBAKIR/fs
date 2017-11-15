@@ -6,14 +6,18 @@
 
 #include <array>
 #include <fs270/config.hpp>
-namespace fs
-{
-struct superblock
-{
-    config::address_t allocator_data_address;
-    config::address_t ilist_address;
+#include <tuple>
 
-    uint32_t total_blocks;
-    uint32_t block_size;
-};
+namespace fs {
+    struct superblock {
+        config::address_t ilist_address;
+
+        uint32_t total_blocks;
+        uint32_t block_size;
+    };
+
+    inline bool operator==(const superblock &a, const superblock &b) {
+        return std::tie(a.ilist_address, a.total_blocks, a.block_size) ==
+               std::tie(b.ilist_address, b.total_blocks, b.block_size);
+    }
 }

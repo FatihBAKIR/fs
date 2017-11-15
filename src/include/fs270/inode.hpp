@@ -144,11 +144,34 @@ public:
      */
     clock::time_point get_access_time() const;
 
+
+    /**
+     * Reads an inode at the given address from the given file system
+     * @param fs the filesystem
+     * @param at address of the inode in device
+     * @return inode at the address
+     */
+    static inode read(fs_instance& fs, config::address_t at);
+
+    /**
+     * Writes the given inode to the given address
+     * @param at address in device to write the inode to
+     * @param inode inode to write to
+     */
+    static void write(config::address_t at, const inode &inode);
+
+    /**
+     * Creates an empty inode associated with the given file system
+     * @param cache block cache for the device
+     * @return empty inode
+     */
+    static inode create(fs_instance& fs);
+
 private:
     inode_data m_data;
     cont_file m_blocks;
     fs_instance* m_fs;
-    int m_refcnt;
+    int m_refcnt = 0;
 
     /**
      * Sets the latest update time of this inode to the current time
@@ -170,29 +193,15 @@ private:
 
     friend void intrusive_ptr_add_ref(inode* n);
     friend void intrusive_ptr_release(inode* n);
+
+public:
+
+    explicit inode(fs_instance* inst);
 };
 
-/**
- * Reads an inode at the given address from the given device
- * @param cache block cache for the device
- * @param at address of the inode in device
- * @return inode at the address
- */
-inode read_inode(block_cache *cache, config::address_t at);
-
-/**
- * Writes the given inode to the device at the given address
- * @param cache block cache for the device
- * @param at address in device to write the inode to
- * @param inode inode to write to
- */
-void write_inode(block_cache *cache, config::address_t at, const inode &inode);
-
-/**
- * Creates an empty inode associated with the given device
- * @param cache block cache for the device
- * @return empty inode
- */
-inode create_inode(block_cache *cache);
+    namespace detail
+    {
+        void create_raw(block_cache* cache, config::address_t at);
+    }
 }
 

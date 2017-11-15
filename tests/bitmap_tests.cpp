@@ -7,12 +7,12 @@
 
 TEST_CASE("bitmap allocator", "[fs][bitmap_alloc]")
 {
-    fs::ram_block_dev dev(10LL * 1024 * 1024 * 1024, 4096);
+    fs::ram_block_dev dev(1LL * 1024 * 1024 * 1024, 4096);
     auto cache = get_cache(dev);
     auto alloc = fs::bitmap_allocator::create(cache, 1);
     alloc.mark_used(0);
 
-    auto begin = 80;
+    auto begin = 8;
 
     REQUIRE(alloc.alloc(1) == begin + 1);
     REQUIRE(alloc.alloc(1) == begin + 2);
