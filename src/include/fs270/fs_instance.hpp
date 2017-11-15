@@ -34,6 +34,25 @@ namespace fs
         block_cache* blk_cache() { return m_cache; }
 
         /**
+         * Allocates an inode number
+         * @return allocated inode number
+         */
+        int32_t create_inode();
+
+        /**
+         * Loads the inode and returns a pointer to it
+         * @param inum inode number
+         * @return inode pointer
+         */
+        inode_ptr get_inode(int32_t inum);
+
+        /**
+         * Frees the given inode number
+         * @param inum inode number
+         */
+        void remove_inode(int32_t inum);
+
+        /**
          * Loads the filesystem from the given block device
          * @param dev device to load the filesystem from
          * @return the loaded filesystem
@@ -61,13 +80,6 @@ namespace fs
          */
         void inode_return(inode* inode);
 
-        inode* create_inode(); // should this take data as an arg?
-
-        void add_inode(inode* inode);
-
-        void get_inode(int32_t inum);
-
-        void remove_inode(int32_t inum);
     };
 
 }
