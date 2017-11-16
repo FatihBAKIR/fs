@@ -5,6 +5,7 @@
 #include <fs270/fs_instance.hpp>
 #include <fs270/fsexcept.hpp>
 #include <fs270/bitmap_allocator.hpp>
+#include <utility>
 
 namespace fs {
 //    inode_ptr fs_instance::find_inode(int32_t inode_id)
@@ -62,6 +63,9 @@ namespace fs {
         m_cache = cache;
         m_device = std::move(dev);
         m_ilist = std::make_unique<inode>(inode::read(*this, match.ilist_address));
+
+        // get the "next inode" and pointer to free list from iblock 0 of ilist
+        // m_ilist.read(0, buf, fs::inode_size); // buf contains iblock 0
     }
 
     fs_instance fs_instance::load(std::unique_ptr<config::block_dev_type> dev) {
@@ -69,5 +73,33 @@ namespace fs {
     }
 
     void fs_instance::inode_return(inode *inode) {
+    }
+
+    int32_t fs_instance::create_inode() {
+      auto in = inode::create(*this);
+      m_ilist_map.insert(std::make_pair<int32_t, inode>(m_ilist_map.size(), std::move(in)));
+      // come up with address addr from ilist
+      config::address_t addr = 0;
+      //m_ilist.add_inode(in);
+      inode::write(addr, in);
+      return m_ilist_map.size()-1;
+    }
+
+    inode_ptr fs_instance::get_inode(int32_t inum) {
+      return NULL;
+    }
+
+    void fs_instance::remove_inode(int32_t inum) {
+      return;
+    }
+
+    config::address_t get_addr(std::unique_ptr<inode> ilist) {
+      int32_t buf[fs::inode_size/sizeof(int32_t)];
+      ilist.read(0, buf, fs::inode_size);
+      if(buf[1] == 0) {
+        return buf[0];
+      }
+      // otherwise, follow the pointers
+      return 0;
     }
 }

@@ -65,6 +65,7 @@ namespace fs
          * Store ilist as an inode so that we can grow/shrink it easily
          */
         std::unique_ptr<inode> m_ilist;
+        std::map<int32_t, inode> m_ilist_map;
 
         std::unique_ptr<bitmap_allocator> m_alloc;
         std::unique_ptr<config::block_dev_type> m_device;

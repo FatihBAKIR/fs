@@ -5,6 +5,7 @@
 #pragma once
 
 #include <fs270/config.hpp>
+#include <memory>
 
 namespace fs
 {
