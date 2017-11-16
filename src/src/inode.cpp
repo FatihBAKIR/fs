@@ -174,6 +174,17 @@ namespace fs {
         return inode(&fs);
     }
 
+    config::address_t inode::get_physical_address(uint32_t ioptr) const
+    {
+        auto blk_sz = m_fs->blk_cache()->device()->get_block_size();
+        auto blk_id = ioptr / blk_sz;
+        auto offset = ioptr % blk_sz;
+
+        auto physical_blk_id = m_blocks.get_actual_block(blk_id);
+        auto address = physical_blk_id * blk_sz + offset;
+        return address;
+    }
+
     template <class T>
     void write_raw(block_cache* cache, config::address_t at, const T& t)
     {
