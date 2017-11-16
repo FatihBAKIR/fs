@@ -75,11 +75,23 @@ namespace fs {
     void fs_instance::inode_return(inode *inode) {
     }
 
+    config::address_t get_addr(std::unique_ptr<inode> ilist) {
+      int32_t buf[fs::inode_size/sizeof(int32_t)];
+      ilist->read(0, buf, fs::inode_size);
+      if(buf[1] == 0) {
+        // increment next inode here?
+        return buf[0];
+      }
+      // otherwise, follow the pointers
+      // update the pointers here?
+      return buf[1];
+    }
+
     int32_t fs_instance::create_inode() {
       auto in = inode::create(*this);
       m_ilist_map.insert(std::make_pair<int32_t, inode>(m_ilist_map.size(), std::move(in)));
       // come up with address addr from ilist
-      config::address_t addr = 0;
+      config::address_t addr = get_addr(m_ilist);
       //m_ilist.add_inode(in);
       inode::write(addr, in);
       return m_ilist_map.size()-1;
@@ -91,15 +103,5 @@ namespace fs {
 
     void fs_instance::remove_inode(int32_t inum) {
       return;
-    }
-
-    config::address_t get_addr(std::unique_ptr<inode> ilist) {
-      int32_t buf[fs::inode_size/sizeof(int32_t)];
-      ilist.read(0, buf, fs::inode_size);
-      if(buf[1] == 0) {
-        return buf[0];
-      }
-      // otherwise, follow the pointers
-      return 0;
     }
 }
