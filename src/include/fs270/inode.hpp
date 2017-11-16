@@ -147,6 +147,12 @@ public:
      */
     clock::time_point get_access_time() const;
 
+    /**
+     * Calculates the physical address for the given IO pointer
+     * @param ioptr IO pointer (address in inode)
+     * @return the physical address
+     */
+    config::address_t get_physical_address(uint32_t ioptr) const;
 
     /**
      * Reads an inode at the given address from the given file system
