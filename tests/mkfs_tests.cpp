@@ -11,20 +11,21 @@
 
 TEST_CASE("mkfs basic", "[fs][mkfs]")
 {
-    fs::config::block_dev_type blk_dev(10 * 1024 * 1024, 4096);
+    auto blk_dev = std::make_unique<fs::ram_block_dev>(10 * 1024 * 1024, 4096);
 
-    fs::make_fs(blk_dev, {});
+    auto fs = fs::make_fs(std::move(blk_dev), {});
 
-    auto cache = get_cache(blk_dev);
+    auto cache = fs.blk_cache();
     auto first_blk = cache->load(1);
 
     auto sb = first_blk->data<fs::superblock>();
+    auto dev = cache->device();
 
     REQUIRE(sb->block_size == 4096);
-    REQUIRE(sb->total_blocks == blk_dev.capacity() / 4096);
-    REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128 + blk_dev.get_block_size());
+    REQUIRE(sb->total_blocks == dev->capacity() / 4096);
+    REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128 + dev->get_block_size());
 
-    auto alloc = fs::bitmap_allocator::load(get_cache(blk_dev), 2);
+    auto alloc = fs::bitmap_allocator::load(cache, 2);
 
     auto f_blocks = alloc.alloc(5);
     auto o_block = alloc.alloc(1);
@@ -39,8 +40,8 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     allocd.insert(0);
     allocd.insert(1);
     allocd.insert(2);
-    allocd.insert(blk_dev.capacity() / blk_dev.get_block_size() - 1);
-    allocd.insert((blk_dev.capacity() / blk_dev.get_block_size())/2);
+    allocd.insert(dev->capacity() / dev->get_block_size() - 1);
+    allocd.insert((dev->capacity() / dev->get_block_size())/2);
     fs::config::sector_id_t id;
     while ((id = alloc.alloc(1)) != fs::config::nullsect)
     {
@@ -48,7 +49,7 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
         allocd.insert(id);
     }
 
-    for (int i = 0; i < blk_dev.capacity()/ blk_dev.get_block_size(); ++i)
+    for (int i = 0; i < dev->capacity()/ dev->get_block_size(); ++i)
     {
         REQUIRE(allocd.find(i) != allocd.end());
     }

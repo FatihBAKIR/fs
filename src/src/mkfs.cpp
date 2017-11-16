@@ -11,10 +11,10 @@
 
 namespace fs
 {
-void make_fs(config::block_dev_type& dev, const fs_parameters &params)
+fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parameters &params)
 {
-    auto total_size = dev.capacity();
-    auto blk_size = dev.get_block_size();
+    auto total_size = dev->capacity();
+    auto blk_size = dev->get_block_size();
     auto total_blocks = total_size / blk_size;
 
     // decide on where to put the superblocks
@@ -36,7 +36,7 @@ void make_fs(config::block_dev_type& dev, const fs_parameters &params)
 
     config::sector_id_t allocator = 1;
 
-    auto cache = get_cache(dev);
+    auto cache = get_cache(*dev);
 
     auto alloc = fs::bitmap_allocator::create(cache, 2);
     alloc.mark_used(0);
@@ -68,5 +68,6 @@ void make_fs(config::block_dev_type& dev, const fs_parameters &params)
     buf[1] = 0;
     ilist_inode.write(0, buf, fs::inode_size);
 
+    return fs;
 }
 }
