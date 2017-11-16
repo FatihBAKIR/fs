@@ -11,9 +11,7 @@
 TEST_CASE("inode basics", "[fs][inode]")
 {
     auto blk_dev = std::make_unique<fs::ram_block_dev>(100LL * 1024 * 1024, 4096);
-    fs::make_fs(*blk_dev, {});
-
-    auto fs = fs::fs_instance::load(std::move(blk_dev));
+    auto fs = fs::make_fs(std::move(blk_dev), {});
 
     auto in = fs::inode::create(fs);
 

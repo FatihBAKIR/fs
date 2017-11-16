@@ -202,6 +202,8 @@ public:
     explicit inode(fs_instance* inst);
 };
 
+    inline constexpr auto inode_size = sizeof(inode_data) + sizeof(detail::contiguous_data);
+
     namespace detail
     {
         void create_raw(block_cache* cache, config::address_t at);
