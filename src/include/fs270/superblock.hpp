@@ -7,13 +7,14 @@
 #include <array>
 #include <fs270/config.hpp>
 #include <tuple>
+#include <cstdint>
 
 namespace fs {
     struct superblock {
         config::address_t ilist_address;
 
-        uint32_t total_blocks;
-        uint32_t block_size;
+        std::uint32_t total_blocks;
+        std::uint32_t block_size;
     };
 
     inline bool operator==(const superblock &a, const superblock &b) {
