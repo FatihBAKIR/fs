@@ -6,15 +6,16 @@
 #include <fs270/block_cache.hpp>
 #include <cstring>
 #include <array>
+#include "tests_common.hpp"
 
 TEST_CASE("block cache", "[fs][cache]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    auto cache = get_cache(dev);
+    auto dev = fs::tests::get_block_dev();
+    auto cache = get_cache(*dev);
 
     std::array<uint8_t, 4096> buffer;
     buffer.fill('a');
-    dev.write(3, buffer.data());
+    dev->write(3, buffer.data());
 
     {
         fs::block_ptr x = cache->load(3);
@@ -24,7 +25,7 @@ TEST_CASE("block cache", "[fs][cache]")
 
             res->data<char>()[0] = 'b';
 
-            dev.read(3, buffer.data());
+            dev->read(3, buffer.data());
             REQUIRE(buffer[0] == 'a');
             REQUIRE(res->data()[0] == 'b');
         }
@@ -33,14 +34,14 @@ TEST_CASE("block cache", "[fs][cache]")
         REQUIRE(x->data<const char>()[0] == 'b');
     }
 
-    dev.read(3, buffer.data());
+    dev->read(3, buffer.data());
     REQUIRE(buffer[0] == 'b');
 }
 
 TEST_CASE("auto flush", "[fs][cache]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    auto cache = get_cache(dev);
+    auto dev = fs::tests::get_block_dev();
+    auto cache = get_cache(*dev);
 
     {
         fs::block_ptr x = cache->load(1);

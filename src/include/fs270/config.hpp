@@ -6,12 +6,13 @@
 
 #include <fs270/fs_fwd.hpp>
 #include <fs270/ram_block_dev.hpp>
+#include <fs270/mmap_block_dev.hpp>
 
 namespace fs
 {
     struct config
     {
-        using block_dev_type = ram_block_dev;
+        using block_dev_type = mmap_block_dev;
 
         static constexpr auto direct_pointers = 6;
         static constexpr auto first_indirects = 3;

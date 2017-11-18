@@ -60,6 +60,8 @@ namespace fs
 
         block_cache* m_cache;
         config::sector_id_t m_start;
+
+        int m_last_alloc = 0;
     };
 
 }

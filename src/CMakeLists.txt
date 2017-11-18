@@ -41,5 +41,8 @@ target_link_libraries(fs_instance PUBLIC fs_interface fs_inode)
 add_library(fs_bm_alloc src/bitmap_allocator.cpp include/fs270/bitmap_allocator.hpp)
 target_link_libraries(fs_bm_alloc PUBLIC fs_interface fs_blk_cache)
 
+add_executable(fuse_driver src/fuse_driver.cpp)
+target_link_libraries(fuse_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs fs_instance)
+
 add_executable(mkfs src/mkfs_driver.cpp)
 target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs)

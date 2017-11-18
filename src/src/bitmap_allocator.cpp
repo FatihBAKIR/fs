@@ -89,12 +89,12 @@ namespace fs {
     config::sector_id_t bitmap_allocator::alloc(int num_blocks)
     {
         // this is extremely inefficient, optimize somehow
-        config::sector_id_t begin = 0;
+        config::sector_id_t begin = m_last_alloc;
         int len = 0;
+        auto total = m_cache->device()->capacity() / m_cache->device()->get_block_size();
         while (len < num_blocks)
         {
-            if (begin + len >
-                    m_cache->device()->capacity() / m_cache->device()->get_block_size())
+            if (begin + len > total)
             {
                 return fs::config::nullsect;
             }
@@ -112,6 +112,7 @@ namespace fs {
         {
             mark_used(i + begin);
         }
+        m_last_alloc = begin + len;
         return begin;
     }
 
@@ -126,5 +127,6 @@ namespace fs {
             }
             set(i + from, false);
         }
+        m_last_alloc = std::min(from, m_last_alloc);
     }
 }
