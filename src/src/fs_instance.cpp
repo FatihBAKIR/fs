@@ -87,7 +87,7 @@ namespace fs {
         // update free_ptr
         m_ilist->write(0, &free_ptr, sizeof(int));
       }
-      auto in = inode::create(fs);
+      auto in = inode::create(*this);
       inode::write(m_ilist->get_physical_address(iaddr*fs::inode_size), in);
       return iaddr;
     }
