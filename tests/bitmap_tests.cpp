@@ -13,7 +13,7 @@ TEST_CASE("bitmap allocator", "[fs][bitmap_alloc]")
     auto alloc = fs::bitmap_allocator::create(cache, 1);
     alloc.mark_used(0);
 
-    auto begin = 1;
+    auto begin = 2;
 
     REQUIRE(alloc.alloc(1) == begin + 1);
     REQUIRE(alloc.alloc(1) == begin + 2);

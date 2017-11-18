@@ -42,6 +42,7 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
     allocd.insert(0);
     allocd.insert(1);
     allocd.insert(2);
+    allocd.insert(3);
     allocd.insert(dev->capacity() / dev->get_block_size() - 1);
     allocd.insert((dev->capacity() / dev->get_block_size())/2);
     fs::config::sector_id_t id;
