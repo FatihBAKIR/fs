@@ -4,15 +4,16 @@
 
 #include <catch.hpp>
 #include <fs270/bitmap_allocator.hpp>
+#include "tests_common.hpp"
 
 TEST_CASE("bitmap allocator", "[fs][bitmap_alloc]")
 {
-    fs::ram_block_dev dev(1LL * 1024 * 1024 * 1024, 4096);
-    auto cache = get_cache(dev);
+    auto dev = fs::tests::get_block_dev();
+    auto cache = get_cache(*dev);
     auto alloc = fs::bitmap_allocator::create(cache, 1);
     alloc.mark_used(0);
 
-    auto begin = 8;
+    auto begin = 1;
 
     REQUIRE(alloc.alloc(1) == begin + 1);
     REQUIRE(alloc.alloc(1) == begin + 2);

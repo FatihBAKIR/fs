@@ -5,11 +5,12 @@
 #include <catch.hpp>
 #include <fs270/contiguous_data.hpp>
 #include <fs270/ram_block_dev.hpp>
+#include "tests_common.hpp"
 
 TEST_CASE("cont file", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    fs::cont_file file = fs::create_cont_file(&dev);
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
 
     REQUIRE(file.get_block_count() == 0);
 
@@ -31,8 +32,8 @@ TEST_CASE("cont file", "[fs][cont_file]")
 
 TEST_CASE("cont file large", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(100 * 1024 * 1024, 4096);
-    fs::cont_file file = fs::create_cont_file(&dev);
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
 
     for (int i = 0; i < 6; ++i)
     {
@@ -62,23 +63,23 @@ TEST_CASE("cont file large", "[fs][cont_file]")
 
 TEST_CASE("cont file capacity", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    fs::cont_file file = fs::create_cont_file(&dev);
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
 
     REQUIRE(file.get_block_count() == 0);
     REQUIRE(file.get_capacity() == 0);
 
     file.push_block(1);
-    REQUIRE(file.get_capacity() == dev.get_block_size());
+    REQUIRE(file.get_capacity() == dev->get_block_size());
     file.push_block(2);
-    REQUIRE(file.get_capacity() == dev.get_block_size() * 2);
+    REQUIRE(file.get_capacity() == dev->get_block_size() * 2);
 }
 
 TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
+    auto dev = fs::tests::get_block_dev();
     {
-        fs::cont_file file = fs::create_cont_file(&dev);
+        fs::cont_file file = fs::create_cont_file(dev.get());
         REQUIRE(file.push_block(3));
         REQUIRE(file.get_block_count() == 1);
         REQUIRE(file.get_actual_block(0) == 3);
@@ -88,11 +89,11 @@ TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);
 
-        write_cont_file(&dev, 10000, file);
+        write_cont_file(dev.get(), 10000, file);
     }
 
     {
-        fs::cont_file file = read_cont_file(&dev, 10000);
+        fs::cont_file file = read_cont_file(dev.get(), 10000);
         REQUIRE(file.get_block_count() == 2);
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);

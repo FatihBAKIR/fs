@@ -42,16 +42,16 @@ block_ptr block_cache::load(config::sector_id_t id)
 void block_cache::finalize(block *b)
 {
     auto it = m_cache.find(b->m_id);
-    for (int i = 0; i < 512; ++i)
+    /*for (int i = 0; i < 512; ++i)
     {
         if (b->m_data[i] != 0xF0 || b->m_data[512 + m_device->get_block_size() + i] != 0xF0)
         {
             std::cerr << "Block corruption in block " << b->m_id << " detected!" << '\n';
             break;
         }
-    }
+    }*/
     flush(b);
-    m_cache.erase(it);
+    //m_cache.erase(it);
 }
 
 void block_cache::flush(block* b)

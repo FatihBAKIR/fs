@@ -8,10 +8,12 @@
 #include <fs270/superblock.hpp>
 #include <fs270/contiguous_data.hpp>
 #include <fs270/bitmap_allocator.hpp>
+#include <iostream>
+#include "tests_common.hpp"
 
 TEST_CASE("mkfs basic", "[fs][mkfs]")
 {
-    auto blk_dev = std::make_unique<fs::ram_block_dev>(10 * 1024 * 1024, 4096);
+    auto blk_dev = fs::tests::get_block_dev();
 
     auto fs = fs::make_fs(std::move(blk_dev), {});
 
@@ -49,6 +51,7 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
         allocd.insert(id);
     }
 
+    auto len = dev->capacity() / dev->get_block_size();
     for (int i = 0; i < dev->capacity()/ dev->get_block_size(); ++i)
     {
         REQUIRE(allocd.find(i) != allocd.end());

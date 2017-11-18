@@ -7,10 +7,11 @@
 #include <fs270/mkfs.hpp>
 #include <fs270/fs_instance.hpp>
 #include <cstring>
+#include "tests_common.hpp"
 
 TEST_CASE("inode basics", "[fs][inode]")
 {
-    auto blk_dev = std::make_unique<fs::ram_block_dev>(100LL * 1024 * 1024, 4096);
+    auto blk_dev = fs::tests::get_block_dev();
     auto fs = fs::make_fs(std::move(blk_dev), {});
 
     auto in = fs::inode::create(fs);
