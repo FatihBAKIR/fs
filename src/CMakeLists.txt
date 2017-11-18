@@ -47,7 +47,7 @@ target_link_libraries(fs_dir PUBLIC fs_inode)
 add_library(fs_symlink include/fs270/symlink.hpp src/symlink.cpp)
 target_link_libraries(fs_symlink PUBLIC fs_inode)
 
-find_package(FUSE REQUIRED)
+find_package(FUSE)
 
 if (FUSE_FOUND)
     message(STATUS "Fuse found, building fuse_driver")
