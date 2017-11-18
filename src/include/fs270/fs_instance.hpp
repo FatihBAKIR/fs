@@ -13,7 +13,7 @@ namespace fs
 {
     using inode_ptr = boost::intrusive_ptr<inode>;
     /**
-     * This class represents a mount
+     * This class represents a mounted file system
      */
     class fs_instance
     {
@@ -58,7 +58,13 @@ namespace fs
          * @return the loaded filesystem
          */
         static fs_instance load(std::unique_ptr<config::block_dev_type> dev);
+
+        int get_total_blocks() const
+        {
+            return m_superblk.total_blocks;
+        }
     private:
+        std::unique_ptr<config::block_dev_type> m_device;
         superblock m_superblk;
 
         /**
@@ -67,7 +73,7 @@ namespace fs
         std::unique_ptr<inode> m_ilist;
 
         std::unique_ptr<bitmap_allocator> m_alloc;
-        std::unique_ptr<config::block_dev_type> m_device;
+
         block_cache* m_cache;
 
         explicit fs_instance(std::unique_ptr<config::block_dev_type> dev);

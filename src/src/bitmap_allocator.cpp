@@ -9,7 +9,15 @@
 
 namespace fs {
     bitmap_allocator::bitmap_allocator(block_cache* cache, config::sector_id_t start_sector)
-            :m_cache(cache), m_start(start_sector) {}
+            :m_cache(cache), m_meta_sector(start_sector), m_start(start_sector + 1)
+    {
+        m_persist = *cache->load(start_sector)->data<detail::bm_data>();
+    }
+
+    bitmap_allocator::~bitmap_allocator() {
+        auto blk = m_cache->load(m_meta_sector);
+        *blk->data<detail::bm_data>() = m_persist;
+    }
 
     bool bitmap_allocator::get(config::sector_id_t id)
     {
@@ -56,6 +64,15 @@ namespace fs {
         auto dev = cache->device();
         auto total_blks = dev->capacity()/dev->get_block_size();
 
+        start_sector = start_sector + 1;
+
+        detail::bm_data data;
+        data.last_alloc = 0;
+        data.free_blocks = total_blks;
+
+        auto blk = cache->load(start_sector - 1);
+        *blk->data<detail::bm_data>() = data;
+
         // need total_blks many bits
         auto total_bytes = total_blks/8;
 
@@ -69,8 +86,9 @@ namespace fs {
         }
 
         // create the actual object
-        bitmap_allocator alloc(cache, start_sector);
+        bitmap_allocator alloc(cache, start_sector - 1);
 
+        alloc.mark_used(start_sector - 1);
         // mark the bitmap blocks as used so they are not allocated
         for (auto i = 0; i < bitmap_block_count; ++i)
         {
@@ -89,7 +107,7 @@ namespace fs {
     config::sector_id_t bitmap_allocator::alloc(int num_blocks)
     {
         // this is extremely inefficient, optimize somehow
-        config::sector_id_t begin = m_last_alloc;
+        config::sector_id_t begin = m_persist.last_alloc;
         int len = 0;
         auto total = m_cache->device()->capacity() / m_cache->device()->get_block_size();
         while (len < num_blocks)
@@ -112,7 +130,8 @@ namespace fs {
         {
             mark_used(i + begin);
         }
-        m_last_alloc = begin + len;
+        m_persist.last_alloc = begin + len;
+        m_persist.free_blocks -= len;
         return begin;
     }
 
@@ -127,6 +146,7 @@ namespace fs {
             }
             set(i + from, false);
         }
-        m_last_alloc = std::min(from, m_last_alloc);
+        m_persist.free_blocks += num_blocks;
+        m_persist.last_alloc = std::min(from, m_persist.last_alloc);
     }
 }

@@ -9,6 +9,15 @@
 
 namespace fs
 {
+    namespace detail
+    {
+        struct bm_data
+        {
+            config::sector_id_t last_alloc;
+            uint64_t free_blocks;
+        };
+    }
+
     class bitmap_allocator
     {
     public:
@@ -52,16 +61,20 @@ namespace fs
          */
         void free(config::sector_id_t from, int num_blocks);
 
+        ~bitmap_allocator();
+
+        size_t get_num_free_blocks() const { return m_persist.free_blocks; }
     private:
         bitmap_allocator(block_cache* cache, config::sector_id_t start_sector);
 
         void set(config::sector_id_t id, bool val);
         bool get(config::sector_id_t id);
 
+        config::sector_id_t m_meta_sector;
         block_cache* m_cache;
         config::sector_id_t m_start;
 
-        int m_last_alloc = 0;
+        detail::bm_data m_persist;
     };
 
 }
