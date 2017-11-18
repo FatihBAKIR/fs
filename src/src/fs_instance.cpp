@@ -75,33 +75,48 @@ namespace fs {
     void fs_instance::inode_return(inode *inode) {
     }
 
-    config::address_t get_addr(std::unique_ptr<inode> ilist) {
-      int32_t buf[fs::inode_size/sizeof(int32_t)];
-      ilist->read(0, buf, fs::inode_size);
-      if(buf[1] == 0) {
-        // increment next inode here?
-        return buf[0];
-      }
-      // otherwise, follow the pointers
-      // update the pointers here?
-      return buf[1];
-    }
-
     int32_t fs_instance::create_inode() {
-      auto in = inode::create(*this);
-      m_ilist_map.insert(std::make_pair<int32_t, inode>(m_ilist_map.size(), std::move(in)));
-      // come up with address addr from ilist
-      config::address_t addr = get_addr(m_ilist);
-      //m_ilist.add_inode(in);
-      inode::write(addr, in);
-      return m_ilist_map.size()-1;
+      int free_ptr;
+      m_ilist->read(0, &free_ptr, sizeof(int));
+      uint32_t iaddr;
+      if(free_ptr == 0) {
+        iaddr = m_ilist->size() / fs::inode_size;
+      } else { // otherwise, rearrange the pointers
+        iaddr = free_ptr;
+        m_ilist->read(iaddr, &free_ptr, sizeof(int)); // is this undefined if it should be null? or will free_ptr rly be 0
+        // update free_ptr
+        m_ilist->write(0, &free_ptr, sizeof(int));
+      }
+      auto in = inode::create(fs);
+      inode::write(m_ilist->get_physical_address(iaddr*fs::inode_size), in);
+      return iaddr;
     }
 
     inode_ptr fs_instance::get_inode(int32_t inum) {
-      return NULL;
+      // use the map as a cache
+      inode_ptr iptr;
+      auto it = m_ilist_map.find(inum);
+      if(it == m_ilist_map.end()) {
+        // not on the map, need to get from disk
+        auto in = inode::read(*this, m_ilist->get_physical_address(inum*fs::inode_size));
+        // if in is null throw inode not found
+        m_ilist_map.insert(std::make_pair(inum, in));
+        iptr = inode_ptr(&in);
+      } else {
+        auto in = it->second;
+        iptr = inode_ptr(&in);
+      }
+      return iptr;
     }
 
     void fs_instance::remove_inode(int32_t inum) {
+      // make sure to write a pointer or nullptr to the removed inode
+      int free_ptr;
+      m_ilist->read(0, &free_ptr, sizeof(int));
+      // point new block to begin of list (effectively placing it at the beginning8)
+      m_ilist->write(m_ilist->get_physical_address(inum*fs::inode_size), &free_ptr, sizeof(int));
+      free_ptr = inum;
+      m_ilist->write(0, &free_ptr, sizeof(int));
       return;
     }
 }

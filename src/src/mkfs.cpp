@@ -63,11 +63,8 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
     // is no fragmenation yet, hence no free list
     auto fs = fs::fs_instance::load(std::move(dev));
     auto ilist_inode = inode::read(fs, sb.ilist_address);
-    int32_t buf[fs::inode_size/sizeof(int32_t)];
-    buf[0] = 1;
-    buf[1] = 0;
-    ilist_inode.write(0, buf, fs::inode_size);
-
+    int zero = 0;
+    ilist_inode.write(0, &zero, sizeof(int));
     return fs;
 }
 }
