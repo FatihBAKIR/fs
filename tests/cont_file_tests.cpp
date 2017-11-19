@@ -5,11 +5,12 @@
 #include <catch.hpp>
 #include <fs270/contiguous_data.hpp>
 #include <fs270/ram_block_dev.hpp>
+#include "tests_common.hpp"
 
 TEST_CASE("cont file", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    fs::cont_file file = fs::create_cont_file(&dev);
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
 
     REQUIRE(file.get_block_count() == 0);
 
@@ -29,39 +30,70 @@ TEST_CASE("cont file", "[fs][cont_file]")
     REQUIRE_THROWS(file.get_actual_block(1));
 }
 
+TEST_CASE("cont file large", "[fs][cont_file]")
+{
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
+
+    for (int i = 0; i < 6; ++i)
+    {
+        REQUIRE(file.push_block(i + 100));
+    }
+
+    for (int i = 6; i < 25; ++i)
+    {
+        REQUIRE_FALSE(file.push_block(i + 100));
+    }
+
+    int k = 0;
+    while(file.get_pushable_count() < 25000)
+    {
+        file.alloc_indirect_block(2000 + k++);
+    }
+
+    for (int i = 6; i < 25000; ++i)
+    {
+        REQUIRE(file.push_block(i + 100));
+    }
+
+    REQUIRE(file.get_actual_block(5) == 105);
+    REQUIRE(file.get_actual_block(6) == 106);
+    REQUIRE(file.get_actual_block(24000) == 24100);
+}
+
 TEST_CASE("cont file capacity", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
-    fs::cont_file file = fs::create_cont_file(&dev);
+    auto dev = fs::tests::get_block_dev();
+    fs::cont_file file = fs::create_cont_file(dev.get());
 
     REQUIRE(file.get_block_count() == 0);
     REQUIRE(file.get_capacity() == 0);
 
     file.push_block(1);
-    REQUIRE(file.get_capacity() == dev.get_block_size());
+    REQUIRE(file.get_capacity() == dev->get_block_size());
     file.push_block(2);
-    REQUIRE(file.get_capacity() == dev.get_block_size() * 2);
+    REQUIRE(file.get_capacity() == dev->get_block_size() * 2);
 }
 
 TEST_CASE("cont file write_cont_file/read", "[fs][cont_file]")
 {
-    fs::ram_block_dev dev(10 * 1024 * 1024, 4096);
+    auto dev = fs::tests::get_block_dev();
     {
-        fs::cont_file file = fs::create_cont_file(&dev);
-        file.push_block(3);
+        fs::cont_file file = fs::create_cont_file(dev.get());
+        REQUIRE(file.push_block(3));
         REQUIRE(file.get_block_count() == 1);
         REQUIRE(file.get_actual_block(0) == 3);
 
-        file.push_block(12);
+        REQUIRE(file.push_block(12));
         REQUIRE(file.get_block_count() == 2);
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);
 
-        write_cont_file(&dev, 10, file);
+        write_cont_file(dev.get(), 10000, file);
     }
 
     {
-        fs::cont_file file = read_cont_file(&dev, 10);
+        fs::cont_file file = read_cont_file(dev.get(), 10000);
         REQUIRE(file.get_block_count() == 2);
         REQUIRE(file.get_actual_block(0) == 3);
         REQUIRE(file.get_actual_block(1) == 12);

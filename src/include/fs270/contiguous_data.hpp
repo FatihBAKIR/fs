@@ -21,6 +21,7 @@ namespace detail
 struct contiguous_data
 {
     int32_t block_count;
+    int32_t pushable_count;
     std::array<config::block_dev_type::sector_id_t, config::direct_pointers>
         direct_blocks;
     std::array<config::block_dev_type::sector_id_t, config::first_indirects>
@@ -51,7 +52,7 @@ public:
      * @param id File block index
      * @return Device sector index
      */
-    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id id);
+    config::block_dev_type::sector_id_t get_actual_block(virtual_block_id id) const;
 
     /**
      * Returns the current number of blocks in the list
@@ -60,10 +61,24 @@ public:
     int32_t get_block_count() const;
 
     /**
-     * Pushes the given sector id to the back of the list
-     * @param id Id to append
+     * Calculates the number of blocks that can be pushed to the list
+     * without requiring an indirect block allocation
+     * @return number of blocks that can be pushed
      */
-    void push_block(config::block_dev_type::sector_id_t id);
+    int32_t get_pushable_count() const;
+
+    /**
+     * Pushes the given sector id to the back of the list
+     * @param id id to append
+     * @return whether the push required an indirect block allocation
+     */
+    bool push_block(config::block_dev_type::sector_id_t id);
+
+    /**
+     * Contiguous file uses the given block as an indirect block
+     * @param id block for the indirect block
+     */
+    void alloc_indirect_block(config::block_dev_type::sector_id_t id);
 
     /**
      * Pops the last sector id from the list
@@ -89,7 +104,7 @@ private:
 
     friend cont_file create_cont_file(config::block_dev_type *device);
 
-    std::vector<config::sector_id_t> calc_path(virtual_block_id);
+    std::vector<config::sector_id_t> calc_path(virtual_block_id) const;
 };
 
 /**
