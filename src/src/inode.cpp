@@ -55,18 +55,18 @@ namespace fs {
         return m_data.group;
     }
 
-    void intrusive_ptr_add_ref(inode *n) {
+    void intrusive_ptr_add_ref(const inode *n) {
         n->m_refcnt++;
     }
 
-    void intrusive_ptr_release(inode *n) {
+    void intrusive_ptr_release(const inode *n) {
         n->m_refcnt--;
         if (n->m_refcnt == 0) {
             n->m_fs->inode_return(n);
         }
     }
 
-    int32_t inode::read(uint32_t from, void *buf, int32_t len) {
+    int32_t inode::read(uint64_t from, void *buf, int32_t len) const {
         if (from + len >= size()) {
             len = size() - from;
         }
@@ -139,10 +139,11 @@ namespace fs {
 
             auto needed_blk_count = int32_t(std::ceil(double(new_size) / m_fs->blk_cache()->device()->get_block_size()));
 
-            for (int i = m_blocks.get_block_count() - needed_blk_count;
-                 i < m_blocks.get_block_count();
-                 ++i) {
-                m_fs->allocator()->free(m_blocks.get_actual_block(i), 1);
+            for (int i = m_blocks.get_block_count();
+                 i > needed_blk_count;
+                 --i) {
+                m_fs->allocator()->free(m_blocks.get_actual_block(i - 1), 1);
+                m_blocks.pop_block();
             }
         }
         else if (new_size > m_data.file_size)

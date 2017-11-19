@@ -51,7 +51,7 @@ void block_cache::finalize(block *b)
         }
     }*/
     flush(b);
-    //m_cache.erase(it);
+    m_cache.erase(it);
 }
 
 void block_cache::flush(block* b)

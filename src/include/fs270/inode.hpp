@@ -117,7 +117,7 @@ public:
      * @param len length of the buffer
      * @return number of bytes read
      */
-    int32_t read(uint32_t from, void *buf, int32_t len);
+    int32_t read(uint64_t from, void *buf, int32_t len) const;
 
     /**
      * Writes `len` bytes starting at `from` from the buffer pointed by `buf`
@@ -176,11 +176,14 @@ public:
      */
     static inode create(fs_instance& fs);
 
+    fs_instance& get_fs() const {
+        return *m_fs;
+    }
 private:
     inode_data m_data;
     cont_file m_blocks;
     fs_instance* m_fs;
-    int m_refcnt = 0;
+    mutable int m_refcnt = 0;
 
     /**
      * Sets the latest update time of this inode to the current time
@@ -200,8 +203,8 @@ private:
      */
     void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
 
-    friend void intrusive_ptr_add_ref(inode* n);
-    friend void intrusive_ptr_release(inode* n);
+    friend void intrusive_ptr_add_ref(const inode* n);
+    friend void intrusive_ptr_release(const inode* n);
 
 public:
 

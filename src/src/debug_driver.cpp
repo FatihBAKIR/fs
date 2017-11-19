@@ -4,6 +4,7 @@
 
 #include <fs270/fs_instance.hpp>
 #include <iostream>
+#include <fs270/directory.hpp>
 
 int main()
 {
@@ -13,11 +14,9 @@ int main()
     std::cout << fs.blk_cache()->device()->capacity() << '\n';
     std::cout << fs.get_total_blocks() << '\n';
     std::cout << "free blocks: " << fs.allocator()->get_num_free_blocks() << '\n';
-
-    auto in = fs::inode::read(fs, 100000);
-    std::string msg;
-    msg.resize(12);
-    in.read(0, &msg[0], 12);
-
-    std::cout << msg << '\n';
+    auto root_dir = fs::directory(fs.get_inode(1));
+    auto hello = fs.get_inode((*root_dir.find("hello")).second);
+    char buf[256];
+    hello->read(0, buf, hello->size());
+    std::cout << buf << '\n';
 }

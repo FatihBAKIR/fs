@@ -12,6 +12,7 @@
 namespace fs
 {
     using inode_ptr = boost::intrusive_ptr<inode>;
+    using const_inode_ptr = boost::intrusive_ptr<const inode>;
     /**
      * This class represents a mounted file system
      */
@@ -69,6 +70,9 @@ namespace fs
             m_ilist->read(sizeof(int), &nin, sizeof(int)); // number of inodes
             return nin;
         }
+
+        fs_instance(fs_instance&&) = default;
+        ~fs_instance();
     private:
         std::unique_ptr<config::block_dev_type> m_device;
         superblock m_superblk;
@@ -95,8 +99,7 @@ namespace fs
          * The inode is then scheduled for flushing
          * @param inode inode to finalize
          */
-        void inode_return(inode* in);
-
+        void inode_return(const inode* in);
     };
 
 }

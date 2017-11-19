@@ -59,7 +59,7 @@ else()
 endif()
 
 add_executable(debug_driver src/debug_driver.cpp)
-target_link_libraries(debug_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs_mmap_blk fs_mkfs fs_instance)
+target_link_libraries(debug_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs_mmap_blk fs_mkfs fs_instance fs_dir)
 
 add_executable(mkfs src/mkfs_driver.cpp)
-target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs)
+target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs fs_dir)

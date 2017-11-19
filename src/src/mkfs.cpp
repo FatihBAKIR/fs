@@ -8,6 +8,7 @@
 #include <fs270/inode.hpp>
 #include <fs270/bitmap_allocator.hpp>
 #include <fs270/fs_instance.hpp>
+#include <fs270/directory.hpp>
 
 namespace fs
 {
@@ -71,6 +72,10 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
     ilist_inode->write(0, &zero, sizeof(int)); // free ptr
     ilist_inode->write(sizeof(int), &zero, sizeof(int)); // number of inodes
     ilist_inode->truncate(fs::inode_size);
+
+    auto root_dir = fs.create_inode();
+    assert(root_dir == 1);
+
     return fs;
 }
 }
