@@ -65,6 +65,7 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
     auto ilist_inode = inode::read(fs, sb.ilist_address);
     int zero = 0;
     ilist_inode.write(0, &zero, sizeof(int));
+    inode::write(sb.ilist_address, ilist_inode);
     return fs;
 }
 }
