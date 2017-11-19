@@ -97,6 +97,7 @@ namespace fs
          */
         void inode_return(inode* in);
 
+        inode* get_ilist() { return m_ilist.get(); }
     };
 
 }
