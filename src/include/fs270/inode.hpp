@@ -176,6 +176,9 @@ public:
      */
     static inode create(fs_instance& fs);
 
+    fs_instance& get_fs() const {
+        return *m_fs;
+    }
 private:
     inode_data m_data;
     cont_file m_blocks;
