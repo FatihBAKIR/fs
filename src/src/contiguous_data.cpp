@@ -167,6 +167,9 @@ namespace fs {
         for (auto& sector : m_data.second_indirect_blocks) {
             if (sector==config::nullsect) {
                 sector = id;
+                auto block = m_cache->load(sector);
+                auto buf = block->data<config::sector_id_t>();
+                std::fill(buf, buf + sector_id_per_block, config::nullsect);
                 return;
             }
             else {
