@@ -117,7 +117,7 @@ public:
      * @param len length of the buffer
      * @return number of bytes read
      */
-    int32_t read(uint32_t from, void *buf, int32_t len) const;
+    int32_t read(uint64_t from, void *buf, int32_t len) const;
 
     /**
      * Writes `len` bytes starting at `from` from the buffer pointed by `buf`

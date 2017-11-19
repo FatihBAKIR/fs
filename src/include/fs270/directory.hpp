@@ -15,7 +15,6 @@ class dir_iterator
 {
 public:
     std::pair<std::string, int> operator*() const;
-    std::pair<std::string, int> operator->() const;
 
     dir_iterator operator++(int);
     dir_iterator& operator++();
@@ -54,8 +53,11 @@ public:
     dir_iterator begin() const;
     dir_iterator end() const;
 
+    dir_iterator find(boost::string_view name) const;
+
     explicit directory(const inode_ptr& ptr) : m_inode(std::move(ptr)) {}
 private:
+    uint64_t find(boost::string_view name, bool) const;
 
     inode_ptr m_inode;
 };

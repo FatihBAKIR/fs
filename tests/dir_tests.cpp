@@ -6,6 +6,8 @@
 #include <catch.hpp>
 #include <fs270/mkfs.hpp>
 #include <iostream>
+#include <numeric>
+#include <random>
 #include "tests_common.hpp"
 
 TEST_CASE("dir test", "[fs][dir]")
@@ -45,6 +47,24 @@ TEST_CASE("dir test", "[fs][dir]")
     REQUIRE(std::distance(dir.begin(), dir.end()) == 1);
     it = std::find_if(dir.begin(), dir.end(), [](const auto& ent) { return ent.first == "hello.txt"; });
     REQUIRE(it == dir.end());
+
+    dir.add_entry("hello.txt", child);
+    REQUIRE(ch_in->get_hardlinks() == 1);
+    REQUIRE(dir_in->size() == asd_size + hello_sz);
+    REQUIRE(std::distance(dir.begin(), dir.end()) == 2);
+    it = std::find_if(dir.begin(), dir.end(), [](const auto& ent) { return ent.first == "hello.txt"; });
+    REQUIRE(it != dir.end());
+
+    dir.del_entry("hello.txt");
+    REQUIRE(ch_in->get_hardlinks() == 0);
+    REQUIRE(dir_in->size() == asd_size);
+    REQUIRE(std::distance(dir.begin(), dir.end()) == 1);
+    it = std::find_if(dir.begin(), dir.end(), [](const auto& ent) { return ent.first == "hello.txt"; });
+    REQUIRE(it == dir.end());
+
+    dir.del_entry("asdasdasd.txt");
+    REQUIRE(dir_in->size() == 0);
+    REQUIRE(std::distance(dir.begin(), dir.end()) == 0);
 }
 
 TEST_CASE("dir large", "[fs][dir]")
@@ -57,7 +77,11 @@ TEST_CASE("dir large", "[fs][dir]")
 
     auto dir = fs::directory(dir_in);
 
-    for (int i = 0; i < 1000; ++i)
+    std::vector<int> nums(1000);
+    std::iota(nums.begin(), nums.end(), 0);
+    std::shuffle(nums.begin(), nums.end(), std::random_device());
+
+    for (auto& i : nums)
     {
         auto name = "file_" + std::to_string(i) + ".txt";
         auto inum = fs.create_inode();
@@ -68,15 +92,27 @@ TEST_CASE("dir large", "[fs][dir]")
 
     REQUIRE(std::distance(dir.begin(), dir.end()) == 1000);
 
-    for (int i = 0; i < 1000; ++i)
+    std::shuffle(nums.begin(), nums.end(), std::random_device());
+    for (auto& i : nums)
     {
         auto name = "file_" + std::to_string(i) + ".txt";
-        auto it = std::find_if(dir.begin(), dir.end(), [&name](const auto& ent) { return ent.first == name; });
+        auto it = dir.find(name);
         REQUIRE(it != dir.end());
         char buf[255];
         auto inode = fs.get_inode((*it).second);
         REQUIRE(inode->get_hardlinks() == 1);
         inode->read(0, buf, inode->size());
         REQUIRE(buf == name);
+    }
+
+    std::shuffle(nums.begin(), nums.end(), std::random_device());
+    for (auto& i : nums)
+    {
+        auto name = "file_" + std::to_string(i) + ".txt";
+        auto it = dir.find(name);
+        REQUIRE(it != dir.end());
+        dir.del_entry(name);
+        it = dir.find(name);
+        REQUIRE(it == dir.end());
     }
 }

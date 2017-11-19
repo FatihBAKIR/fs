@@ -16,11 +16,11 @@ namespace fs
         m_inode->get_fs().get_inode(inumber)->increment_hardlinks();
     }
 
-    int next_dirent(const inode* dir_inode, int cur_ptr)
+    uint64_t next_dirent(const inode* dir_inode, uint64_t cur_ptr)
     {
         uint8_t len;
         dir_inode->read(cur_ptr, &len, sizeof len);
-        return cur_ptr + sizeof len + len + sizeof cur_ptr;
+        return cur_ptr + sizeof len + len + sizeof(int);
     }
 
     dir_iterator dir_iterator::operator++(int)
@@ -52,6 +52,31 @@ namespace fs
         return { std::string(fname), inum };
     }
 
+    dir_iterator directory::find(boost::string_view name) const {
+        return dir_iterator(m_inode.get(), find(name, true));
+    }
+
+    uint64_t directory::find(boost::string_view name, bool) const {
+        uint64_t cur_ptr = 0;
+        while (cur_ptr != m_inode->size())
+        {
+            uint8_t len;
+            m_inode->read(cur_ptr, &len, sizeof len);
+            if (len == name.size())
+            {
+                char fname[255];
+                m_inode->read(cur_ptr + sizeof len, fname, len);
+                fname[len] = 0;
+                if (fname == name)
+                {
+                    break;
+                }
+            }
+            cur_ptr = next_dirent(m_inode.get(), cur_ptr);
+        }
+        return cur_ptr;
+    }
+
     dir_iterator& dir_iterator::operator++()
     {
         m_dir_pos = next_dirent(m_dir_inode.get(), m_dir_pos);
@@ -71,44 +96,26 @@ namespace fs
 
     void directory::del_entry(boost::string_view name)
     {
-        auto cur_ptr = 0;
-        uint8_t len;
-        m_inode->read(cur_ptr, &len, sizeof len);
-        if (len == name.size())
+        uint64_t cur_ptr = find(name, true);
+        auto it = dir_iterator(m_inode.get(), cur_ptr);
+        auto inumber = (*it).second;
+
+        auto entry_len = sizeof(uint8_t) + name.size() + sizeof inumber;
+
+        //found it
+        char copy_buffer[4096];
+        auto next = next_dirent(m_inode.get(), cur_ptr);
+        while (next < m_inode->size())
         {
-            char fname[255];
-            m_inode->read(cur_ptr + sizeof len, fname, len);
-            fname[len] = 0;
-            if (name == fname)
-            {
-                auto entry_len = sizeof len + len + sizeof cur_ptr;
-                //found it
-                char copy_buffer[4096];
-                auto next = next_dirent(m_inode.get(), cur_ptr);
-                int inumber;
-                m_inode->read(cur_ptr + sizeof len + len, &inumber, sizeof inumber);
-
-                while (next < m_inode->size())
-                {
-                    auto sz = std::min(4096, m_inode->size() - next);
-                    m_inode->read(next, copy_buffer, sz);
-                    m_inode->write(cur_ptr, copy_buffer, sz);
-                    next = next + sz;
-                    cur_ptr = cur_ptr + sz;
-                }
-
-                m_inode->truncate(m_inode->size() - entry_len);
-
-                m_inode->get_fs().get_inode(inumber)->decrement_hardlinks();
-            }
-            else
-            {
-                cur_ptr = next_dirent(m_inode.get(), cur_ptr);
-            }
+            auto sz = std::min<uint64_t>(4096, m_inode->size() - next);
+            m_inode->read(next, copy_buffer, sz);
+            m_inode->write(cur_ptr, copy_buffer, sz);
+            next = next + sz;
+            cur_ptr = cur_ptr + sz;
         }
-        else
-        {
-            cur_ptr = next_dirent(m_inode.get(), cur_ptr);
-        }
+
+        m_inode->truncate(m_inode->size() - entry_len);
+
+        m_inode->get_fs().get_inode(inumber)->decrement_hardlinks();
     }
 }
