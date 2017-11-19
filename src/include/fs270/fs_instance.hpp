@@ -63,6 +63,10 @@ namespace fs
         {
             return m_superblk.total_blocks;
         }
+
+        int get_number_inodes() const {
+            return m_ilist.get()->size() / fs::inode_size;
+        }
     private:
         std::unique_ptr<config::block_dev_type> m_device;
         superblock m_superblk;
