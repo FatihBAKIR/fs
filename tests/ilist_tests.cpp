@@ -18,13 +18,12 @@ TEST_CASE("ilists test", "[fs][inode]")
   std::vector<int32_t> inns; // inode numbers
   int n_ins = fsi.get_number_inodes();
 
-
   for(int i=0; i<100; i++) {
     inns.push_back(fsi.create_inode());
     REQUIRE(fsi.get_number_inodes() == n_ins+1);
     n_ins = fsi.get_number_inodes();
   }
-  REQUIRE(fsi.get_number_inodes() == 100);
+  REQUIRE(fsi.get_number_inodes() == 101); //root inode + 100 = 101
 
   for(int i=0; i<100; i++) {
     auto res = fsi.get_inode(inns[i]);
@@ -36,7 +35,7 @@ TEST_CASE("ilists test", "[fs][inode]")
   }
 
   // make sure ilist is empty
-  REQUIRE(fsi.get_number_inodes() == 0);
+  REQUIRE(fsi.get_number_inodes() == 1);
 
 }
 
