@@ -63,6 +63,10 @@ namespace fs
         {
             return m_superblk.total_blocks;
         }
+
+        int get_number_inodes() const {
+            return m_ilist.get()->size() / fs::inode_size;
+        }
     private:
         std::unique_ptr<config::block_dev_type> m_device;
         superblock m_superblk;
@@ -71,6 +75,7 @@ namespace fs
          * Store ilist as an inode so that we can grow/shrink it easily
          */
         std::unique_ptr<inode> m_ilist;
+        std::map<int32_t, inode> m_ilist_map;
 
         std::unique_ptr<bitmap_allocator> m_alloc;
 
@@ -86,6 +91,7 @@ namespace fs
          */
         void inode_return(inode* inode);
 
+        inode* get_ilist() { return m_ilist.get(); }
     };
 
 }

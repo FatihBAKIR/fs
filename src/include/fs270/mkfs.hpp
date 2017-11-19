@@ -7,7 +7,6 @@
 #include <fs270/config.hpp>
 #include <memory>
 #include <fs270/fs_instance.hpp>
-
 namespace fs
 {
 struct fs_parameters
