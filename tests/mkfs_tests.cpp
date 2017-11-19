@@ -52,8 +52,10 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
         allocd.insert(id);
     }
 
+    REQUIRE(allocd.size() == sb->total_blocks);
+
     auto len = dev->capacity() / dev->get_block_size();
-    for (int i = 0; i < dev->capacity()/ dev->get_block_size(); ++i)
+    for (int i = 0; i < len; ++i)
     {
         REQUIRE(allocd.find(i) != allocd.end());
     }

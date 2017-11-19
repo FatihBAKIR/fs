@@ -64,6 +64,13 @@ namespace fs
         ~bitmap_allocator();
 
         size_t get_num_free_blocks() const { return m_persist.free_blocks; }
+
+        bitmap_allocator(const bitmap_allocator&) = delete;
+        bitmap_allocator(bitmap_allocator&& rhs);
+
+        bitmap_allocator& operator=(const bitmap_allocator&) = delete;
+        bitmap_allocator& operator=(bitmap_allocator&&) = delete;
+
     private:
         bitmap_allocator(block_cache* cache, config::sector_id_t start_sector);
 
