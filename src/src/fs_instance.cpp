@@ -73,7 +73,7 @@ namespace fs {
         return fs_instance(std::move(dev));
     }
 
-    void fs_instance::inode_return(inode *in) {
+    void fs_instance::inode_return(const inode *in) {
       // get inode number from map
       int inum;
       bool found = false;

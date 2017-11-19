@@ -3,19 +3,20 @@
 //
 
 #include <fs270/directory.hpp>
+#include <tuple>
 
 namespace fs
 {
     void directory::add_entry(boost::string_view name, int inumber) {
         uint8_t name_len = name.size();
-        m_inode->write(m_inode->size() - 1, &name_len, sizeof name_len);
-        m_inode->write(m_inode->size() - 1, name.data(), name_len);
-        m_inode->write(m_inode->size() - 1, &inumber, sizeof inumber);
+        m_inode->write(m_inode->size(), &name_len, sizeof name_len);
+        m_inode->write(m_inode->size(), name.data(), name_len);
+        m_inode->write(m_inode->size(), &inumber, sizeof inumber);
 
         m_inode->get_fs().get_inode(inumber)->increment_hardlinks();
     }
 
-    int next_dirent(inode* dir_inode, int cur_ptr)
+    int next_dirent(const inode* dir_inode, int cur_ptr)
     {
         uint8_t len;
         dir_inode->read(cur_ptr, &len, sizeof len);
@@ -27,6 +28,16 @@ namespace fs
         auto copy = *this;
         ++(*this);
         return copy;
+    }
+
+    dir_iterator directory::begin() const
+    {
+        return { m_inode.get(), 0 };
+    }
+
+    dir_iterator directory::end() const
+    {
+        return { m_inode.get(), (uint64_t)m_inode->size() };
     }
 
     std::pair<std::string, int> dir_iterator::operator*() const
@@ -47,10 +58,15 @@ namespace fs
         return *this;
     }
 
-    bool dir_iterator::operator==(const dir_iterator& rhs)
+    bool dir_iterator::operator==(const dir_iterator& rhs) const
     {
-        return std::tie(m_dir_inode.get(), m_dir_pos) ==
-                std::tie(rhs.m_dir_inode.get(), rhs.m_dir_pos);
+        return m_dir_inode.get() == rhs.m_dir_inode.get() &&
+                m_dir_pos == rhs.m_dir_pos;
+    }
+
+    bool dir_iterator::operator!=(const dir_iterator& rhs) const
+    {
+        return !(*this == rhs);
     }
 
     void directory::del_entry(boost::string_view name)

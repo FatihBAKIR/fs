@@ -55,18 +55,18 @@ namespace fs {
         return m_data.group;
     }
 
-    void intrusive_ptr_add_ref(inode *n) {
+    void intrusive_ptr_add_ref(const inode *n) {
         n->m_refcnt++;
     }
 
-    void intrusive_ptr_release(inode *n) {
+    void intrusive_ptr_release(const inode *n) {
         n->m_refcnt--;
         if (n->m_refcnt == 0) {
             n->m_fs->inode_return(n);
         }
     }
 
-    int32_t inode::read(uint32_t from, void *buf, int32_t len) {
+    int32_t inode::read(uint32_t from, void *buf, int32_t len) const {
         if (from + len >= size()) {
             len = size() - from;
         }

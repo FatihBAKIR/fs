@@ -13,15 +13,21 @@ namespace fs
 class dir_iterator
         : std::iterator<std::forward_iterator_tag, std::pair<std::string, int>>
 {
+public:
     std::pair<std::string, int> operator*() const;
 
     dir_iterator operator++(int);
     dir_iterator& operator++();
 
-    bool operator==(const dir_iterator& rhs);
+    bool operator==(const dir_iterator& rhs) const;
+    bool operator!=(const dir_iterator& rhs) const;
 
+    friend class directory;
 private:
-    inode_ptr m_dir_inode;
+    dir_iterator(const inode* in, uint64_t pos) :
+        m_dir_inode(in), m_dir_pos(pos) {}
+
+    const_inode_ptr m_dir_inode;
     uint64_t m_dir_pos;
 };
 
@@ -44,6 +50,10 @@ public:
      */
     void del_entry(boost::string_view name);
 
+    dir_iterator begin() const;
+    dir_iterator end() const;
+
+    explicit directory(const inode_ptr& ptr) : m_inode(std::move(ptr)) {}
 private:
 
     inode_ptr m_inode;

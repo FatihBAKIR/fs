@@ -9,7 +9,9 @@ add_executable(fs_test
         mmap_tests.cpp
         mkfs_tests.cpp
         bitmap_tests.cpp
-        tests_common.cpp ilist_tests.cpp dir_tests.cpp)
+        tests_common.cpp
+        ilist_tests.cpp
+        dir_tests.cpp)
 target_link_libraries(fs_test PRIVATE
         fs_cont_data fs_ram_blk fs_blk_cache fs_inode
         fs_mmap_blk fs_mkfs fs_bm_alloc fs_instance

@@ -12,6 +12,7 @@
 namespace fs
 {
     using inode_ptr = boost::intrusive_ptr<inode>;
+    using const_inode_ptr = boost::intrusive_ptr<const inode>;
     /**
      * This class represents a mounted file system
      */
@@ -95,9 +96,7 @@ namespace fs
          * The inode is then scheduled for flushing
          * @param inode inode to finalize
          */
-        void inode_return(inode* in);
-
-        inode* get_ilist() { return m_ilist.get(); }
+        void inode_return(const inode* in);
     };
 
 }
