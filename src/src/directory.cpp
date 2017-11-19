@@ -85,6 +85,8 @@ namespace fs
                 //found it
                 char copy_buffer[4096];
                 auto next = next_dirent(m_inode.get(), cur_ptr);
+                int inumber;
+                m_inode->read(cur_ptr + sizeof len + len, &inumber, sizeof inumber);
 
                 while (next < m_inode->size())
                 {
@@ -96,6 +98,8 @@ namespace fs
                 }
 
                 m_inode->truncate(m_inode->size() - entry_len);
+
+                m_inode->get_fs().get_inode(inumber)->decrement_hardlinks();
             }
             else
             {

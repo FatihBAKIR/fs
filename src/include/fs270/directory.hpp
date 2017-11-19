@@ -11,10 +11,11 @@
 namespace fs
 {
 class dir_iterator
-        : std::iterator<std::forward_iterator_tag, std::pair<std::string, int>>
+        : public std::iterator<std::forward_iterator_tag, std::pair<std::string, int>>
 {
 public:
     std::pair<std::string, int> operator*() const;
+    std::pair<std::string, int> operator->() const;
 
     dir_iterator operator++(int);
     dir_iterator& operator++();
