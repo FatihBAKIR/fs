@@ -27,6 +27,10 @@ namespace fs {
 //
 //    }
 
+    fs_instance::~fs_instance() {
+        inode::write(m_superblk.ilist_address, *m_ilist);
+    }
+
     fs_instance::fs_instance(std::unique_ptr<config::block_dev_type> dev) {
         auto total_size = dev->capacity();
         auto blk_size = dev->get_block_size();

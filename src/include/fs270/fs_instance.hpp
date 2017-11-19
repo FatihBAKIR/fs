@@ -70,6 +70,9 @@ namespace fs
             m_ilist->read(sizeof(int), &nin, sizeof(int)); // number of inodes
             return nin;
         }
+
+        fs_instance(fs_instance&&) = default;
+        ~fs_instance();
     private:
         std::unique_ptr<config::block_dev_type> m_device;
         superblock m_superblk;
