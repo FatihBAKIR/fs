@@ -15,8 +15,17 @@ namespace fs {
     }
 
     bitmap_allocator::~bitmap_allocator() {
+        if (m_meta_sector == 0) return;
         auto blk = m_cache->load(m_meta_sector);
         *blk->data<detail::bm_data>() = m_persist;
+    }
+
+    bitmap_allocator::bitmap_allocator(bitmap_allocator&& rhs)
+    {
+        m_cache = rhs.m_cache;
+        m_meta_sector = std::exchange(rhs.m_meta_sector, 0);
+        m_persist = rhs.m_persist;
+        m_start = rhs.m_start;
     }
 
     bool bitmap_allocator::get(config::sector_id_t id)
@@ -112,7 +121,7 @@ namespace fs {
         auto total = m_cache->device()->capacity() / m_cache->device()->get_block_size();
         while (len < num_blocks)
         {
-            if (begin + len > total)
+            if (begin + len >= total)
             {
                 return fs::config::nullsect;
             }

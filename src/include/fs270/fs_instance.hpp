@@ -65,6 +65,7 @@ namespace fs
         }
 
         int get_number_inodes() const {
+            int sz = m_ilist.get()->size();
             return m_ilist.get()->size() / fs::inode_size;
         }
     private:
@@ -83,6 +84,10 @@ namespace fs
 
         explicit fs_instance(std::unique_ptr<config::block_dev_type> dev);
     public:
+
+        inode* get_ilist() {
+            return m_ilist.get();
+        }
 
         /**
          * This function is called when the ref count of an inode reaches 0

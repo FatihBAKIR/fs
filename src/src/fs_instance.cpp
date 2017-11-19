@@ -81,6 +81,7 @@ namespace fs {
       uint32_t iaddr;
       if(free_ptr == 0) {
         iaddr = m_ilist->size() / fs::inode_size;
+        m_ilist->truncate((iaddr + 1) * fs::inode_size);
       } else { // otherwise, rearrange the pointers
         iaddr = free_ptr;
         m_ilist->read(iaddr, &free_ptr, sizeof(int)); // is this undefined if it should be null? or will free_ptr rly be 0
