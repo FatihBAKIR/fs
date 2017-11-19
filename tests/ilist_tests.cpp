@@ -28,7 +28,7 @@ TEST_CASE("ilists test", "[fs][inode]")
 
   for(int i=0; i<100; i++) {
     auto res = fsi.get_inode(inns[i]);
-    std::cout << res << std::endl; // what's this return if it fails?
+    //std::cout << res << std::endl; // what's this return if it fails?
   }
 
   for(int i=0; i<100; i++) {

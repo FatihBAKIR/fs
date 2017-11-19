@@ -208,7 +208,7 @@ public:
     explicit inode(fs_instance* inst);
 };
 
-    inline constexpr auto inode_size = sizeof(inode_data) + sizeof(detail::contiguous_data);
+    inline constexpr auto inode_size = 128; //sizeof(inode_data) + sizeof(detail::contiguous_data);
 
     namespace detail
     {

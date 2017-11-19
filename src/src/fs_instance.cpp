@@ -6,6 +6,7 @@
 #include <fs270/fsexcept.hpp>
 #include <fs270/bitmap_allocator.hpp>
 #include <utility>
+#include <fs270/fsexcept.hpp>
 
 namespace fs {
 //    inode_ptr fs_instance::find_inode(int32_t inode_id)
@@ -72,22 +73,42 @@ namespace fs {
         return fs_instance(std::move(dev));
     }
 
-    void fs_instance::inode_return(inode *inode) {
+    void fs_instance::inode_return(inode *in) {
+      // get inode number from map
+      int inum;
+      bool found = false;
+      for (auto it=m_ilist_map.begin(); it!=m_ilist_map.end(); ++it) {
+        if(&(it->second) == in) {
+          inum = it->first;
+          found = true;
+          // remove from map
+          inode::write(m_ilist->get_physical_address(inum*fs::inode_size), *in);
+          m_ilist_map.erase(it);
+          break;
+        }
+      }
+      if(!found) throw fs::inode_not_found(-1);
     }
 
     int32_t fs_instance::create_inode() {
-      int free_ptr;
+      int free_ptr, nin; // number of inodes
       m_ilist->read(0, &free_ptr, sizeof(int));
+      m_ilist->read(sizeof(int), &nin, sizeof(int));
       uint32_t iaddr;
-      if(free_ptr == 0) {
+      if(free_ptr == 0)
+      {
         iaddr = m_ilist->size() / fs::inode_size;
         m_ilist->truncate((iaddr + 1) * fs::inode_size);
-      } else { // otherwise, rearrange the pointers
+      }
+      else
+      { // otherwise, rearrange the pointers
         iaddr = free_ptr;
         m_ilist->read(iaddr, &free_ptr, sizeof(int)); // is this undefined if it should be null? or will free_ptr rly be 0
         // update free_ptr
         m_ilist->write(0, &free_ptr, sizeof(int));
       }
+      nin++;
+      m_ilist->write(sizeof(int), &nin, sizeof(int));
       auto in = inode::create(*this);
       inode::write(m_ilist->get_physical_address(iaddr*fs::inode_size), in);
       return iaddr;
@@ -95,29 +116,29 @@ namespace fs {
 
     inode_ptr fs_instance::get_inode(int32_t inum) {
       // use the map as a cache
-      inode_ptr iptr;
       auto it = m_ilist_map.find(inum);
       if(it == m_ilist_map.end()) {
         // not on the map, need to get from disk
         auto in = inode::read(*this, m_ilist->get_physical_address(inum*fs::inode_size));
         // if in is null throw inode not found
-        m_ilist_map.insert(std::make_pair(inum, in));
-        iptr = inode_ptr(&in);
+        auto it = m_ilist_map.insert(std::make_pair(inum, in));
+        return inode_ptr(&it.first->second);
       } else {
-        auto in = it->second;
-        iptr = inode_ptr(&in);
+        return inode_ptr(&it->second);
       }
-      return iptr;
     }
 
     void fs_instance::remove_inode(int32_t inum) {
       // make sure to write a pointer or nullptr to the removed inode
-      int free_ptr;
+      int free_ptr, nin; // number of inodes
       m_ilist->read(0, &free_ptr, sizeof(int));
-      // point new block to begin of list (effectively placing it at the beginning8)
-      m_ilist->write(m_ilist->get_physical_address(inum*fs::inode_size), &free_ptr, sizeof(int));
+      m_ilist->read(sizeof(int), &nin, sizeof(int));
+      // point new block to begin of list (effectively placing it at the beginning)
+      m_ilist->write(inum*fs::inode_size, &free_ptr, sizeof(int));
       free_ptr = inum;
       m_ilist->write(0, &free_ptr, sizeof(int));
+      nin--;
+      m_ilist->write(sizeof(int), &nin, sizeof(int));
       return;
     }
 }
