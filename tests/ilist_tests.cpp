@@ -16,16 +16,19 @@ TEST_CASE("ilists test", "[fs][inode]")
   auto blk_dev = fs::tests::get_block_dev();
   auto fsi = fs::make_fs(std::move(blk_dev), {});
   std::vector<int32_t> inns; // inode numbers
+  int n_ins = fsi.get_number_inodes();
 
 
   for(int i=0; i<100; i++) {
     inns.push_back(fsi.create_inode());
+    REQUIRE(fsi.get_number_inodes() == n_ins+1);
+    n_ins = fsi.get_number_inodes();
   }
   REQUIRE(fsi.get_number_inodes() == 100);
 
   for(int i=0; i<100; i++) {
     auto res = fsi.get_inode(inns[i]);
-    std::cout << res << std::endl; // what's this return if it fails?
+    //std::cout << res << std::endl; // what's this return if it fails?
   }
 
   for(int i=0; i<100; i++) {

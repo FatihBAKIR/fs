@@ -68,7 +68,9 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
     auto fs = fs::fs_instance::load(std::move(dev));
     auto ilist_inode = fs.get_ilist();
     int zero = 0;
-    ilist_inode->write(0, &zero, sizeof(int));
+    ilist_inode->write(0, &zero, sizeof(int)); // free ptr
+    ilist_inode->write(sizeof(int), &zero, sizeof(int)); // number of inodes
+    ilist_inode->truncate(fs::inode_size);
     return fs;
 }
 }

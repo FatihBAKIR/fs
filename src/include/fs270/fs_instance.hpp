@@ -65,7 +65,9 @@ namespace fs
         }
 
         int get_number_inodes() const {
-            return m_ilist.get()->size() / fs::inode_size;
+            int nin;
+            m_ilist->read(sizeof(int), &nin, sizeof(int)); // number of inodes
+            return nin;
         }
     private:
         std::unique_ptr<config::block_dev_type> m_device;
@@ -84,12 +86,16 @@ namespace fs
         explicit fs_instance(std::unique_ptr<config::block_dev_type> dev);
     public:
 
+        inode* get_ilist() {
+            return m_ilist.get();
+        }
+
         /**
          * This function is called when the ref count of an inode reaches 0
          * The inode is then scheduled for flushing
          * @param inode inode to finalize
          */
-        void inode_return(inode* inode);
+        void inode_return(inode* in);
 
         inode* get_ilist() { return m_ilist.get(); }
     };

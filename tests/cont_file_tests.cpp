@@ -6,7 +6,7 @@
 #include <fs270/contiguous_data.hpp>
 #include <fs270/ram_block_dev.hpp>
 #include "tests_common.hpp"
-
+/*
 TEST_CASE("cont file", "[fs][cont_file]")
 {
     auto dev = fs::tests::get_block_dev();
@@ -169,3 +169,4 @@ TEST_CASE("calc_path double indirect", "[fs][cont_file][cont_data]")
     REQUIRE(p[1] == 1);
     REQUIRE(p[2] == 9);
 }
+*/
