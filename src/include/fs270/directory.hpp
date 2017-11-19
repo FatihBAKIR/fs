@@ -15,8 +15,8 @@ class dir_iterator
 {
     std::pair<std::string, int> operator*() const;
 
-    dir_iterator operator++(int) const;
-    dir_iterator& operator++() const;
+    dir_iterator operator++(int);
+    dir_iterator& operator++();
 
     bool operator==(const dir_iterator& rhs);
 
