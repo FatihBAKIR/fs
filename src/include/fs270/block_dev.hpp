@@ -1,0 +1,36 @@
+//
+// Created by Chani Jindal on 11/18/17.
+//
+
+#pragma once
+
+#include <cstdint>
+#include <cstddef>
+#include <string>
+
+namespace fs
+{
+    class block_dev
+    {
+    public:
+        using sector_id_t = int;
+
+        int write(sector_id_t id, const void *data);
+
+        int read(sector_id_t id, void *data);
+
+        uint16_t get_block_size() const;
+        size_t capacity() const
+        { return m_capacity; }
+
+        block_dev(const std::string &path, size_t size, uint16_t block_size);
+        ~block_dev();
+
+    private:
+        size_t m_capacity;
+        int fd;
+        uint16_t m_blk_size;
+
+        int get_block_offset(sector_id_t sector);
+    };
+}
