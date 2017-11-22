@@ -166,6 +166,17 @@ int fs_release(const char *, fuse_file_info *fi) {
     priv->log->info("Closed -> {}", fi->fh);
     return 0;
 }
+
+#if BOOST_OS_MACOS
+using access_mode_t = fd_mask;
+#elif BOOST_OS_LINUX
+using access_mode_t = int;
+#endif
+
+int fs_access(const char* p, access_mode_t mode)
+{
+    return 0;
+}
 }
 
 
@@ -184,10 +195,7 @@ auto main(int argc, char **argv) -> int {
     p_ops->release  = fs_release;
     p_ops->chmod    = fs_chmod;
     p_ops->chown    = fs_chown;
-    p_ops->access   = [](const char* p, fd_mask m)
-    {
-        return 0;
-    };
+    p_ops->access   = fs_access;
 
     std::cout << p_ops << '\n';
     auto fuse_stat = fuse_main(argc, argv, p_ops, p_ops);
