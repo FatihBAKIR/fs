@@ -88,6 +88,7 @@ void *fs_init(struct fuse_conn_info *conn) {
             std::make_unique<fs::config::block_dev_type>("/media/fatih/D9E0-4BC6/fs", 1LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
+    spdlog::set_async_mode(8192 * 4);
     priv->log = spdlog::stderr_color_st("fslog");
 
     priv->log->info("Initiated filesystem");
@@ -101,6 +102,27 @@ void fs_destroy(void* arg)
 {
     auto fsp = static_cast<fs_fuse_private *>(arg);
     delete fsp;
+}
+
+int fs_statfs(const char*, struct statvfs* stat)
+{
+    auto priv = get_private();
+    priv->log->info("Statfs");
+    fs::fs_instance* inst = priv->fs.get();
+    stat->f_blocks = inst->get_total_blocks();
+    stat->f_bsize = inst->blk_cache()->device()->get_block_size();
+    stat->f_frsize = stat->f_bsize;
+    stat->f_bfree = inst->allocator()->get_num_free_blocks();
+    stat->f_bavail = inst->allocator()->get_num_free_blocks();
+
+    stat->f_files = inst->get_number_inodes();
+    stat->f_ffree = 1000000;
+    stat->f_favail = 1000000;
+
+    stat->f_fsid = 0xF5270;
+    stat->f_flag = 0;
+    stat->f_namemax = 255;
+    return 0;
 }
 
 int fs_open(const char *p, fuse_file_info *fi) {
@@ -386,7 +408,7 @@ auto main(int argc, char **argv) -> int {
     /* Filesystem */
     p_ops->init     = fs_init;
     p_ops->destroy  = fs_destroy;
-    p_ops->statfs   = nullptr;
+    p_ops->statfs   = fs_statfs;
 
     /* Open/close  */
     p_ops->open     = fs_open;

@@ -8,6 +8,7 @@
 #include <fs270/fsexcept.hpp>
 #include <fs270/block.hpp>
 
+
 namespace fs {
     cont_file read_cont_file(config::block_dev_type* device, config::address_t addr)
     {
@@ -32,6 +33,7 @@ namespace fs {
         detail::contiguous_data data;
         data.block_count = 0;
         data.pushable_count = data.direct_blocks.size();
+        data.indirect_count = 0;
         std::fill(begin(data.direct_blocks), end(data.direct_blocks), config::nullsect);
         std::fill(begin(data.first_indirect_blocks), end(data.first_indirect_blocks), config::nullsect);
         std::fill(begin(data.second_indirect_blocks), end(data.second_indirect_blocks), config::nullsect);
@@ -44,7 +46,7 @@ namespace fs {
         return m_data.block_count;
     }
 
-    std::vector<config::sector_id_t>
+    boost::container::static_vector<config::sector_id_t, 3>
     detail::calc_path(config::sector_id_t id, const contiguous_data& data, uint16_t blksize)
     {
         if (id>=data.block_count) {
@@ -80,7 +82,8 @@ namespace fs {
         return {};
     }
 
-    std::vector<config::sector_id_t> cont_file::calc_path(cont_file::virtual_block_id id) const
+    boost::container::static_vector<config::sector_id_t, 3>
+    cont_file::calc_path(cont_file::virtual_block_id id) const
     {
         return detail::calc_path(id, m_data, m_cache->device()->get_block_size());
     }
@@ -153,7 +156,7 @@ namespace fs {
         return true;
     }
 
-    void cont_file::alloc_indirect_block(config::block_dev_type::sector_id_t id)
+    void cont_file::push_indirect_block(config::block_dev_type::sector_id_t id)
     {
         auto sector_id_per_block = m_cache->device()->get_block_size()/sizeof(config::sector_id_t);
 
@@ -161,6 +164,7 @@ namespace fs {
             if (sector==config::nullsect) {
                 sector = id;
                 m_data.pushable_count += sector_id_per_block;
+                m_data.indirect_count++;
                 return;
             }
         }
@@ -170,6 +174,7 @@ namespace fs {
                 auto block = m_cache->load(sector);
                 auto buf = block->data<config::sector_id_t>();
                 std::fill(buf, buf + sector_id_per_block, config::nullsect);
+                m_data.indirect_count++;
                 return;
             }
             else {
@@ -179,11 +184,78 @@ namespace fs {
                     if (buf[i]==config::nullsect) {
                         block->data<config::sector_id_t>()[i] = id;
                         m_data.pushable_count += sector_id_per_block;
+                        m_data.indirect_count++;
                         return;
                     }
                 }
             }
         }
+    }
+
+    config::sector_id_t cont_file::pop_indirect_block() {
+        auto sector_id_per_block = m_cache->device()->get_block_size()/sizeof(config::sector_id_t);
+        auto cnt = get_indirect_count() - 1;
+
+        auto total = 6;
+
+        for (int i = 0; i < m_data.first_indirect_blocks.size() && cnt >= 0; ++i, --cnt)
+        {
+            if (cnt == 0)
+            {
+                // found it
+                auto block = m_cache->load(m_data.first_indirect_blocks[i]);
+                auto data = block->data<const config::sector_id_t>();
+                if (get_pushable_count() >= sector_id_per_block)
+                {
+                    auto res = m_data.first_indirect_blocks[i];
+                    m_data.first_indirect_blocks[i] = config::nullsect;
+                    m_data.pushable_count -= sector_id_per_block;
+                    m_data.indirect_count--;
+                    return res;
+                }
+            }
+
+            total += sector_id_per_block;
+        }
+
+        for (int i = 0; i < m_data.second_indirect_blocks.size() && cnt >= 0; ++i, --cnt)
+        {
+            auto block = m_cache->load(m_data.second_indirect_blocks[i]);
+            auto data = block->data<const config::sector_id_t>();
+            if (cnt == 0)
+            {
+                // found it
+                if (data[0] == config::nullsect)
+                {
+                    auto res = m_data.second_indirect_blocks[i];
+                    m_data.second_indirect_blocks[i] = config::nullsect;
+                    m_data.indirect_count--;
+                    return res;
+                }
+                break;
+            }
+
+            --cnt;
+            for (int j = 0; j < sector_id_per_block && cnt >= 0; ++j, --cnt)
+            {
+                auto blk = m_cache->load(data[j]);
+                auto dat = blk->data<const config::sector_id_t>();
+
+                if (cnt == 0 && get_pushable_count() >= sector_id_per_block)
+                {
+                    auto mdat = block->data<config::sector_id_t>();
+                    auto res = mdat[j];
+                    mdat[j] = config::nullsect;
+                    m_data.indirect_count--;
+                    m_data.pushable_count -= sector_id_per_block;
+                    return res;
+                }
+
+                total += sector_id_per_block;
+            }
+        }
+
+        return config::nullsect;
     }
 
     void cont_file::pop_block()
@@ -200,5 +272,9 @@ namespace fs {
     int32_t cont_file::get_pushable_count() const
     {
         return m_data.pushable_count;
+    }
+
+    int cont_file::get_indirect_count() const {
+        return m_data.indirect_count;
     }
 }

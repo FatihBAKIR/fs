@@ -34,7 +34,9 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
         superblock sb;
         sb.block_size = blk_size;
         sb.total_blocks = total_blocks;
-        sb.ilist_address = sizeof(superblock) + 128 + blk_size;
+        sb.ilist_address = 128;
+
+        sb.ilist_address += blk_size;
 
         config::sector_id_t allocator = 1;
 

@@ -20,7 +20,7 @@ enum class inode_type: uint8_t
 /**
  * inode only data that's read and written from/to the disk
  */
-struct inode_data
+struct alignas(64) inode_data
 {
     int32_t file_size;
     uint8_t ref_cnt;
@@ -31,9 +31,11 @@ struct inode_data
     time_t mod_time;
     time_t creat_time;
     time_t access_time;
+    char __pad__[24];
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
+static_assert(sizeof(inode_data) == 64, "Inode data size is incorrect!");
 
 class fs_instance;
 
@@ -221,7 +223,7 @@ public:
     explicit inode(fs_instance* inst);
 };
 
-    inline constexpr auto inode_size = 128; //sizeof(inode_data) + sizeof(detail::contiguous_data);
+    inline constexpr auto inode_size = sizeof(inode_data) + sizeof(detail::contiguous_data);
 
     namespace detail
     {
