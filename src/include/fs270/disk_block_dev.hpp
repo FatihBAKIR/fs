@@ -10,7 +10,7 @@
 
 namespace fs
 {
-    class block_dev
+    class disk_block_dev
     {
     public:
         using sector_id_t = int;
@@ -23,8 +23,8 @@ namespace fs
         size_t capacity() const
         { return m_capacity; }
 
-        block_dev(const std::string &path, size_t size, uint16_t block_size);
-        ~block_dev();
+        disk_block_dev(const std::string &path, size_t size, uint16_t block_size);
+        ~disk_block_dev();
 
     private:
         size_t m_capacity;

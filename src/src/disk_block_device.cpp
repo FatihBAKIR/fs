@@ -2,13 +2,14 @@
 // Created by Chani Jindal on 11/18/17.
 //
 
-#include <fs270/block_dev.hpp>
+#include <fs270/disk_block_dev.hpp>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdexcept>
 
 namespace fs
 {
-    int block_dev::write(block_dev::sector_id_t id, const void *data)
+    int disk_block_dev::write(disk_block_dev::sector_id_t id, const void *data)
     {
         auto ptr = reinterpret_cast<const char *>(data);
 
@@ -16,7 +17,7 @@ namespace fs
             return -1;
 
         int byte_offset = get_block_offset(id);
-        if( ( byte_offset + block_dev::m_blk_size ) >= block_dev::m_capacity )
+        if( ( byte_offset + disk_block_dev::m_blk_size ) >= disk_block_dev::m_capacity )
             return -1;
 
         lseek( fd, byte_offset, SEEK_SET );
@@ -25,7 +26,7 @@ namespace fs
         return 0;
     }
 
-    int block_dev::read(block_dev::sector_id_t id, void *data)
+    int disk_block_dev::read(disk_block_dev::sector_id_t id, void *data)
     {
         auto ptr = reinterpret_cast< char *>(data);
 
@@ -33,7 +34,7 @@ namespace fs
             return -1;
 
         int byte_offset = get_block_offset(id);
-        if( ( byte_offset + block_dev::m_blk_size ) >= block_dev::m_capacity )
+        if( ( byte_offset + disk_block_dev::m_blk_size ) >= disk_block_dev::m_capacity )
             return -1;
 
         lseek( fd, byte_offset, SEEK_SET );
@@ -42,7 +43,7 @@ namespace fs
         return 0;
     }
 
-    block_dev::block_dev(const std::string &path, size_t size, uint16_t block_size)
+    disk_block_dev::disk_block_dev(const std::string &path, size_t size, uint16_t block_size)
     {
         m_capacity = size;
         m_blk_size = block_size;
@@ -50,32 +51,31 @@ namespace fs
         ftruncate(fd, size);
 
         if(fd == -1){
-            _exit(1);
+            throw std::runtime_error("can't open device!");
         }
         if (lseek(fd, size, SEEK_SET) == -1){
-            close(block_dev::fd);
-            _exit(1);
+            close(fd);
+            throw std::runtime_error("can't open device!");
         }
         if(::write(fd, "", 1) < 0){
             close(fd);
-            _exit(1);
+            throw std::runtime_error("can't open device!");
         }
     }
 
-    int block_dev::get_block_offset(block_dev::sector_id_t sector)
+    int disk_block_dev::get_block_offset(disk_block_dev::sector_id_t sector)
     {
         return sector * m_blk_size;
     }
 
-    uint16_t block_dev::get_block_size() const
+    uint16_t disk_block_dev::get_block_size() const
     {
         return m_blk_size;
     }
 
-    block_dev::~block_dev()
+    disk_block_dev::~disk_block_dev()
     {
         //not sure what to do
         close(fd);
     }
-
 }
