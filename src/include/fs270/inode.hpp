@@ -10,8 +10,9 @@
 
 namespace fs
 {
-enum class inode_flags: uint8_t
+enum class inode_type: uint8_t
 {
+    regular = 0,
     directory = 1,
     symlink = 2
 };
@@ -23,7 +24,7 @@ struct inode_data
 {
     int32_t file_size;
     uint8_t ref_cnt;
-    inode_flags flags;
+    inode_type type;
     uint16_t permissions;
     int32_t owner;
     int32_t group;
@@ -42,6 +43,12 @@ class fs_instance;
 class inode
 {
 public:
+    void set_type(inode_type type)
+    { m_data.type = type; }
+
+    inode_type get_type() const
+    { return m_data.type; }
+
     /**
      * Size of the file in bytes
      * @return size of the file
@@ -100,8 +107,11 @@ public:
      */
     int32_t get_group() const;
 
-    void chmod(uint16_t per)
+    void set_mode(uint16_t per)
     { m_data.permissions = per; }
+
+    uint16_t get_mode() const
+    { return m_data.permissions; }
 
     /**
      * Sets the size for the file of this inode

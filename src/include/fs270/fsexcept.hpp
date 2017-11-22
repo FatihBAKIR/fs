@@ -24,7 +24,11 @@ struct inode_not_found : std::runtime_error
     }
 };
 
+struct alive_inode_exception {};
+
 struct null_block_exception { };
 
 struct double_free {};
+
+struct inode_type_error {};
 }

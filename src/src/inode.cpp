@@ -131,6 +131,7 @@ namespace fs {
             offset += copy_bytes;
             len -= copy_bytes;
         }
+        update_mod_time();
     }
 
     void inode::truncate(int32_t new_size) {
@@ -163,16 +164,20 @@ namespace fs {
                 m_blocks.push_block(m_fs->allocator()->alloc(1));
             }
         }
+        update_mod_time();
     }
 
     inode::inode(fs_instance *inst) : m_fs(inst), m_blocks(fs::create_cont_file(inst->blk_cache()->device())) {
-        m_data.file_size = 0;
-        set_times(clock::now(), clock::now(), clock::now());
-        m_data.ref_cnt = 0;
     }
 
     inode inode::create(fs_instance &fs) {
-        return inode(&fs);
+        auto in = inode(&fs);
+        std::memset(&in.m_data, 0, sizeof in.m_data);
+        in.m_data.file_size = 0;
+        in.set_times(clock::now(), clock::now(), clock::now());
+        in.m_data.ref_cnt = 0;
+        in.set_mode(0644);
+        return in;
     }
 
     config::address_t inode::get_physical_address(uint32_t ioptr) const

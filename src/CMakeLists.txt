@@ -42,7 +42,8 @@ add_library(fs_bm_alloc src/bitmap_allocator.cpp include/fs270/bitmap_allocator.
 target_link_libraries(fs_bm_alloc PUBLIC fs_interface fs_blk_cache)
 
 add_library(fs_dir include/fs270/directory.hpp src/directory.cpp)
-target_link_libraries(fs_dir PUBLIC fs_inode)
+target_link_libraries(fs_dir PUBLIC fs_inode ${Boost_LIBRARIES})
+target_include_directories(fs_dir PUBLIC ${Boost_INCLUDE_DIR})
 
 add_library(fs_symlink include/fs270/symlink.hpp src/symlink.cpp)
 target_link_libraries(fs_symlink PUBLIC fs_inode)
@@ -52,8 +53,13 @@ find_package(FUSE)
 if (FUSE_FOUND)
     message(STATUS "Fuse found, building fuse_driver")
     add_executable(fuse_driver src/fuse_driver.cpp)
-    target_link_libraries(fuse_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs_mmap_blk fs_mkfs fs_instance)
-    target_compile_definitions(fuse_driver PRIVATE _FILE_OFFSET_BITS=64)
+    target_include_directories(fuse_driver PRIVATE ${FUSE_INCLUDE_DIRS})
+    target_link_libraries(fuse_driver PRIVATE
+            fs_cont_data fs_blk_cache fs_inode
+            fs_mmap_blk fs_mkfs fs_instance
+            fs_dir
+            ${FUSE_LIBRARIES} pthread)
+    target_compile_definitions(fuse_driver PRIVATE _FILE_OFFSET_BITS=64 FUSE_USE_VERSION=31)
 else()
     message(STATUS "Fuse not found, omitting fuse_driver")
 endif()
