@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <fs270/directory.hpp>
 #include <boost/predef.h>
+#include <boost/type_index.hpp>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -88,6 +89,10 @@ void *fs_init(struct fuse_conn_info *conn) {
 
     auto priv = new fs_fuse_private(std::move(fs));
     priv->log = spdlog::stderr_color_st("fslog");
+
+    priv->log->info("Initiated filesystem");
+    priv->log->info("Using \"{}\" as the block device", boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
+    priv->log->info("Fuse version: {}", fuse_version());
 
     return priv;
 }
@@ -375,7 +380,6 @@ int fs_unlink(const char* p)
 
 auto main(int argc, char **argv) -> int {
     std::unique_ptr<fuse_operations> ops = std::make_unique<fuse_operations>();
-    std::cout << "fuse version: " << fuse_version() << '\n';
 
     fuse_operations *p_ops = ops.get();
 
@@ -437,7 +441,6 @@ auto main(int argc, char **argv) -> int {
         std::abort();
     });
 
-    std::cout << p_ops << '\n';
     auto fuse_stat = fuse_main(argc, argv, p_ops, nullptr);
     return fuse_stat;
 }
