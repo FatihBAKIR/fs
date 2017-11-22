@@ -49,22 +49,24 @@ add_library(fs_symlink include/fs270/symlink.hpp src/symlink.cpp)
 target_link_libraries(fs_symlink PUBLIC fs_inode)
 
 find_package(FUSE)
-
-if (FUSE_FOUND)
+find_package(OSXFuse)
+if (UNIX AND (FUSE_FOUND OR OSXFUSE_FOUND))
     message(STATUS "Fuse found, building fuse_driver")
     add_executable(fuse_driver src/fuse_driver.cpp)
-    target_include_directories(fuse_driver PRIVATE ${FUSE_INCLUDE_DIRS})
     target_link_libraries(fuse_driver PRIVATE
             fs_cont_data fs_blk_cache fs_inode
             fs_mmap_blk fs_mkfs fs_instance
-            fs_dir
-            ${FUSE_LIBRARIES} pthread)
-    if (UNIX AND NOT APPLE)
-        target_link_libraries(fuse_driver PRIVATE -static-libgcc -static-libstdc++)
-    endif()
+            fs_dir)
     target_compile_definitions(fuse_driver PRIVATE _FILE_OFFSET_BITS=64 FUSE_USE_VERSION=31)
-else()
-    message(STATUS "Fuse not found, omitting fuse_driver")
+
+    if (UNIX AND NOT APPLE)
+        target_include_directories(fuse_driver PRIVATE ${FUSE_INCLUDE_DIRS})
+        target_link_libraries(fuse_driver PRIVATE ${FUSE_LIBRARIES} pthread)
+        target_link_libraries(fuse_driver PRIVATE -static-libgcc -static-libstdc++)
+    elseif(UNIX AND APPLE)
+        target_include_directories(fuse_driver PRIVATE ${OSXFUSE_INCLUDE_DIRS})
+        target_link_libraries(fuse_driver PUBLIC ${OSXFUSE_LIBRARIES})
+    endif()
 endif()
 
 add_executable(debug_driver src/debug_driver.cpp)

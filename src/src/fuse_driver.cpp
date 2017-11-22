@@ -141,7 +141,7 @@ int fs_getattr(const char *path, struct stat *stbuf) {
             break;
     }
 
-    stbuf->st_nlink = inode->get_hardlinks();
+    stbuf->st_nlink = std::max<int>(1, inode->get_hardlinks());
     stbuf->st_size = inode->size();
 
 #if BOOST_OS_LINUX
@@ -184,6 +184,10 @@ auto main(int argc, char **argv) -> int {
     p_ops->release  = fs_release;
     p_ops->chmod    = fs_chmod;
     p_ops->chown    = fs_chown;
+    p_ops->access   = [](const char* p, fd_mask m)
+    {
+        return 0;
+    };
 
     std::cout << p_ops << '\n';
     auto fuse_stat = fuse_main(argc, argv, p_ops, p_ops);
