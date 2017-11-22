@@ -189,6 +189,14 @@ public:
     fs_instance& get_fs() const {
         return *m_fs;
     }
+
+    /**
+     * Sets the times of this inode
+     * @param create creation time
+     * @param mod modification time
+     * @param access access time
+     */
+    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
 private:
     inode_data m_data;
     cont_file m_blocks;
@@ -204,14 +212,6 @@ private:
      * Sets the access time of this inode to the current time
      */
     void update_access_time();
-
-    /**
-     * Sets the times of this inode
-     * @param create creation time
-     * @param mod modification time
-     * @param access access time
-     */
-    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
 
     friend void intrusive_ptr_add_ref(const inode* n);
     friend void intrusive_ptr_release(const inode* n);
