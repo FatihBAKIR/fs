@@ -77,7 +77,7 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
     assert(root_dir == 1);
     auto root_in = fs.get_inode(root_dir);
     root_in->set_type(inode_type::directory);
-    root_in->set_mode(0644);
+    root_in->set_mode(0755);
 
     return fs;
 }
