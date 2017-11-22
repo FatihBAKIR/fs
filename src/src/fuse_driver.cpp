@@ -9,6 +9,7 @@
 #include <fs270/fs_instance.hpp>
 #include <spdlog/spdlog.h>
 #include <fs270/directory.hpp>
+#include <boost/predef.h>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -142,9 +143,17 @@ int fs_getattr(const char *path, struct stat *stbuf) {
 
     stbuf->st_nlink = inode->get_hardlinks();
     stbuf->st_size = inode->size();
+
+#if BOOST_OS_LINUX
     stbuf->st_atim = to_tspec(inode->get_access_time());
     stbuf->st_mtim = to_tspec(inode->get_modification_time());
     stbuf->st_ctim = to_tspec(inode->get_creation_time());
+#elif BOOST_OS_MACOS
+    stbuf->st_atimespec = to_tspec(inode->get_access_time());
+    stbuf->st_mtimespec = to_tspec(inode->get_modification_time());
+    stbuf->st_ctimespec = to_tspec(inode->get_creation_time());
+#endif
+
     stbuf->st_blksize = priv->fs->blk_cache()->device()->get_block_size();
     stbuf->st_blocks = inode->capacity() / stbuf->st_blksize;
     stbuf->st_uid = inode->get_owner();
@@ -155,6 +164,7 @@ int fs_getattr(const char *path, struct stat *stbuf) {
 int fs_release(const char *, fuse_file_info *fi) {
     auto priv = get_private();
     priv->log->info("Closed -> {}", fi->fh);
+    return 0;
 }
 }
 
