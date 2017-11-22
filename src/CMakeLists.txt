@@ -59,7 +59,7 @@ if (FUSE_FOUND)
             fs_mmap_blk fs_mkfs fs_instance
             fs_dir
             ${FUSE_LIBRARIES} pthread)
-    if (LINUX)
+    if (UNIX AND NOT APPLE)
         target_link_libraries(fuse_driver PRIVATE -static-libgcc -static-libstdc++)
     endif()
     target_compile_definitions(fuse_driver PRIVATE _FILE_OFFSET_BITS=64 FUSE_USE_VERSION=31)
@@ -72,6 +72,6 @@ target_link_libraries(debug_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs
 
 add_executable(mkfs src/mkfs_driver.cpp)
 target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs fs_dir)
-if (LINUX)
+if (UNIX AND NOT APPLE)
     target_link_libraries(mkfs PRIVATE -static-libgcc -static-libstdc++)
 endif()
