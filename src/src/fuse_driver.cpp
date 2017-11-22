@@ -42,7 +42,7 @@ void *fs_init(struct fuse_conn_info *conn) {
     std::cout << ctx->private_data << '\n';
 
     auto fs = fs::fs_instance::load_heap(
-            std::make_unique<fs::mmap_block_dev>("/tmp/fs", 10LL * 1024 * 1024 * 1024, 4096));
+            std::make_unique<fs::mmap_block_dev>("/tmp/fs", 1LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
     priv->log = spdlog::stderr_color_st("fslog");
