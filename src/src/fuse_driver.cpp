@@ -23,6 +23,15 @@ fs_fuse_private *get_private() {
     return static_cast<fs_fuse_private *>(fuse_get_context()->private_data);
 }
 
+timespec to_tspec(std::chrono::system_clock::time_point tp) {
+    timespec ts;
+    auto dur = tp.time_since_epoch();
+    auto secs = std::chrono::duration_cast<std::chrono::seconds>(dur);
+    ts.tv_sec = secs.count();
+    dur -= secs;
+    ts.tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
+    return ts;
+}
 extern "C" {
 struct fs_opaque;
 
@@ -149,18 +158,11 @@ int fs_release(const char *, fuse_file_info *fi) {
 }
 }
 
-timespec to_tspec(std::chrono::system_clock::time_point tp) {
-    timespec ts;
-    auto dur = tp.time_since_epoch();
-    auto secs = std::chrono::duration_cast<std::chrono::seconds>(dur);
-    ts.tv_sec = secs.count();
-    dur -= secs;
-    ts.tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
-    return ts;
-}
 
 auto main(int argc, char **argv) -> int {
     std::unique_ptr<fuse_operations> ops = std::make_unique<fuse_operations>();
+    std::cout << "fuse version: " << fuse_version() << '\n';
+
     fuse_operations *p_ops = ops.get();
 
     p_ops->init     = fs_init;
