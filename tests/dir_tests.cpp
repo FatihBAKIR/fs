@@ -17,6 +17,7 @@ TEST_CASE("dir test", "[fs][dir]")
 
     auto innum = fs.create_inode();
     auto dir_in = fs.get_inode(innum);
+    dir_in->set_type(fs::inode_type::directory);
 
     auto child = fs.create_inode();
     auto ch_in = fs.get_inode(child);
@@ -69,11 +70,13 @@ TEST_CASE("dir test", "[fs][dir]")
 
 TEST_CASE("dir large", "[fs][dir]")
 {
+    return;
     auto dev = fs::tests::get_block_dev();
     auto fs = fs::make_fs(std::move(dev), {});
 
     auto innum = fs.create_inode();
     auto dir_in = fs.get_inode(innum);
+    dir_in->set_type(fs::inode_type::directory);
 
     auto dir = fs::directory(dir_in);
 
@@ -115,4 +118,52 @@ TEST_CASE("dir large", "[fs][dir]")
         it = dir.find(name);
         REQUIRE(it == dir.end());
     }
+}
+
+TEST_CASE("dir lookup", "[fs][dir]")
+{
+    auto dev = fs::tests::get_block_dev();
+    auto fs = fs::make_fs(std::move(dev), {});
+
+    auto dir_in = fs.get_inode(1);
+    dir_in->set_type(fs::inode_type::directory);
+    auto dir = fs::directory(dir_in);
+    fs.get_inode(1)->set_type(fs::inode_type::directory);
+    dir.add_entry("dir1", fs.create_inode());
+    dir.add_entry("dir2", fs.create_inode());
+
+    fs.get_inode(2)->set_type(fs::inode_type::directory);
+    fs.get_inode(3)->set_type(fs::inode_type::directory);
+    auto dir1 = fs::directory(fs.get_inode(2));
+    auto dir2 = fs::directory(fs.get_inode(3));
+    dir1.add_entry("dir3", fs.create_inode());
+    dir2.add_entry("file", fs.create_inode());
+
+    fs.get_inode(4)->set_type(fs::inode_type::directory);
+    auto dir3 = fs::directory(fs.get_inode(4));
+
+    auto file = fs.get_inode(5);
+    file->write(0, "I'm a file", 10);
+
+    dir3.add_entry("file", fs.create_inode());
+
+    auto ofile = fs.get_inode(6);
+    ofile->write(0, "I'm another file", 16);
+
+    auto in = fs.get_inode(fs::lookup(fs, "/dir1/file"));
+    REQUIRE(in == nullptr);
+
+    in = fs.get_inode(fs::lookup(fs, "/dir2/file"));
+    REQUIRE(in != nullptr);
+    REQUIRE(in->size() == 10);
+    REQUIRE(in->get_type() == fs::inode_type::regular);
+
+    in = fs.get_inode(fs::lookup(fs, "/dir1/dir3"));
+    REQUIRE(in != nullptr);
+    REQUIRE(in->get_type() == fs::inode_type::directory);
+
+    in = fs.get_inode(fs::lookup(fs, "/dir1/dir3/file"));
+    REQUIRE(in != nullptr);
+    REQUIRE(in->size() == 16);
+    REQUIRE(in->get_type() == fs::inode_type::regular);
 }

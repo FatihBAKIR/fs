@@ -28,6 +28,7 @@ namespace fs {
 //    }
 
     fs_instance::~fs_instance() {
+        if (!m_ilist) return;
         inode::write(m_superblk.ilist_address, *m_ilist);
     }
 
@@ -73,6 +74,10 @@ namespace fs {
         return fs_instance(std::move(dev));
     }
 
+    std::unique_ptr<fs_instance> fs_instance::load_heap(std::unique_ptr<config::block_dev_type> dev) {
+        return std::unique_ptr<fs_instance>{new fs_instance(std::move(dev))};
+    }
+
     void fs_instance::inode_return(const inode *in) {
         // get inode number from map
         for (auto it = m_ilist_map.begin(); it != m_ilist_map.end(); ++it) {
@@ -110,6 +115,7 @@ namespace fs {
     }
 
     inode_ptr fs_instance::get_inode(int32_t inum) {
+        if (inum == 0) return nullptr;
         // use the map as a cache
         auto it = m_ilist_map.find(inum);
         if (it == m_ilist_map.end()) {
@@ -124,6 +130,13 @@ namespace fs {
     }
 
     void fs_instance::remove_inode(int32_t inum) {
+        {
+            auto in = get_inode(inum);
+            if (in->get_hardlinks() != 0)
+            {
+                throw alive_inode_exception{};
+            }
+        }
         // make sure to write a pointer or nullptr to the removed inode
         int free_ptr, nin; // number of inodes
         m_ilist->read(0, &free_ptr, sizeof(int));

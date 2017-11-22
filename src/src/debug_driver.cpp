@@ -8,7 +8,7 @@
 
 int main()
 {
-    auto dev = std::make_unique<fs::mmap_block_dev>("/tmp/fs", 10LL * 1024 * 1024 * 1024, 4096);
+    auto dev = std::make_unique<fs::config::block_dev_type>("/tmp/fs", 10LL * 1024 * 1024 * 1024, 4096);
     auto fs = fs::fs_instance::load(std::move(dev));
 
     std::cout << fs.blk_cache()->device()->capacity() << '\n';
