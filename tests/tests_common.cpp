@@ -5,6 +5,7 @@
 #include "tests_common.hpp"
 #include <fs270/mmap_block_dev.hpp>
 #include <fs270/ram_block_dev.hpp>
+#include <fs270/disk_block_dev.hpp>
 
 namespace fs
 {
@@ -17,6 +18,11 @@ namespace fs
     std::unique_ptr<mmap_block_dev> get_blk_dev(type<mmap_block_dev>)
     {
         return std::make_unique<mmap_block_dev>("/tmp/test_fs", 100LL * 1024 * 1024, 4096);
+    }
+
+    std::unique_ptr<disk_block_dev> get_blk_dev(type<disk_block_dev>)
+    {
+        return std::make_unique<disk_block_dev>("/tmp/filesystem", 100LL * 1024 * 1024, 4096);
     }
 
     std::unique_ptr<config::block_dev_type> tests::get_block_dev() {

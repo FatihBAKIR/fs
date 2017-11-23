@@ -25,7 +25,7 @@ TEST_CASE("mkfs basic", "[fs][mkfs]")
 
     REQUIRE(sb->block_size == 4096);
     REQUIRE(sb->total_blocks == dev->capacity() / 4096);
-    REQUIRE(sb->ilist_address == sizeof(fs::superblock) + 128 + dev->get_block_size());
+    REQUIRE(sb->ilist_address == 128 + dev->get_block_size());
 
     auto alloc = fs::bitmap_allocator::load(cache, 2);
 

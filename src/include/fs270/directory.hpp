@@ -70,8 +70,13 @@ private:
 inline int lookup(fs::fs_instance& fs, boost::string_view path)
 {
     auto inum = 1;
-    auto cur = fs.get_inode(1); // start at root
 
+    if (path.empty())
+    {
+        return inum;
+    }
+
+    auto cur = fs.get_inode(1); // start at root
     path = path.substr(1, path.size());
 
     while (!path.empty())

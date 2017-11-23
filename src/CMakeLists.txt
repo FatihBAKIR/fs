@@ -17,6 +17,9 @@ target_link_libraries(fs_ram_blk PUBLIC fs_interface)
 add_library(fs_mmap_blk src/mmap_block_dev.cpp include/fs270/mmap_block_dev.hpp)
 target_link_libraries(fs_mmap_blk PUBLIC fs_interface)
 
+add_library(fs_disk_blk src/disk_block_device.cpp include/fs270/disk_block_dev.hpp)
+target_link_libraries(fs_disk_blk PUBLIC fs_interface)
+
 add_library(fs_cont_data src/contiguous_data.cpp include/fs270/contiguous_data.hpp)
 target_link_libraries(fs_cont_data PUBLIC fs_interface fs_blk_cache)
 
@@ -33,7 +36,7 @@ add_library(fs_inode src/inode.cpp include/fs270/inode.hpp)
 target_link_libraries(fs_inode PUBLIC fs_interface fs_cont_data fs_blk_cache fs_instance)
 
 add_library(fs_mkfs src/mkfs.cpp include/fs270/mkfs.hpp)
-target_link_libraries(fs_mkfs PUBLIC fs_interface fs_blk_cache fs_bm_alloc fs_mmap_blk fs_instance)
+target_link_libraries(fs_mkfs PUBLIC fs_interface fs_blk_cache fs_bm_alloc fs_mmap_blk fs_disk_blk fs_instance)
 
 add_library(fs_instance src/fs_instance.cpp include/fs270/fs_instance.hpp)
 target_link_libraries(fs_instance PUBLIC fs_interface fs_inode)
@@ -73,7 +76,8 @@ add_executable(debug_driver src/debug_driver.cpp)
 target_link_libraries(debug_driver PRIVATE fs_cont_data fs_blk_cache fs_inode fs_mmap_blk fs_mkfs fs_instance fs_dir)
 
 add_executable(mkfs src/mkfs_driver.cpp)
-target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_ram_blk fs_mkfs fs_dir)
+
+target_link_libraries(mkfs PRIVATE fs_cont_data fs_blk_cache fs_inode fs_mkfs fs_dir)
 if (UNIX AND NOT APPLE)
     target_link_libraries(mkfs PRIVATE -static-libgcc -static-libstdc++)
 endif()

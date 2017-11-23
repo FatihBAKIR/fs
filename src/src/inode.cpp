@@ -7,6 +7,7 @@
 #include <fs270/bitmap_allocator.hpp>
 #include <cmath>
 #include <cstring>
+#include <fs270/fsexcept.hpp>
 
 namespace fs {
     void inode::update_mod_time() {
@@ -146,6 +147,12 @@ namespace fs {
                 m_fs->allocator()->free(m_blocks.get_actual_block(i - 1), 1);
                 m_blocks.pop_block();
             }
+
+            config::sector_id_t free;
+            while ((free = m_blocks.pop_indirect_block()) != config::nullsect)
+            {
+                m_fs->allocator()->free(free, 1);
+            }
         }
         else if (new_size > m_data.file_size)
         {
@@ -156,12 +163,22 @@ namespace fs {
             auto diff = needed_blk_count - m_blocks.get_block_count();
             while (m_blocks.get_pushable_count() < diff)
             {
-                m_blocks.alloc_indirect_block(m_fs->allocator()->alloc(1));
+                auto blk = m_fs->allocator()->alloc(1);
+                if (blk == config::nullsect)
+                {
+                    throw out_of_space_error{};
+                }
+                m_blocks.push_indirect_block(blk);
             }
 
             for (int i = m_blocks.get_block_count(); i < needed_blk_count; ++i)
             {
-                m_blocks.push_block(m_fs->allocator()->alloc(1));
+                auto blk = m_fs->allocator()->alloc(1);
+                if (blk == config::nullsect)
+                {
+                    throw out_of_space_error{};
+                }
+                m_blocks.push_block(blk);
             }
         }
         update_mod_time();

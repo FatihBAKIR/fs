@@ -70,7 +70,6 @@ TEST_CASE("dir test", "[fs][dir]")
 
 TEST_CASE("dir large", "[fs][dir]")
 {
-    return;
     auto dev = fs::tests::get_block_dev();
     auto fs = fs::make_fs(std::move(dev), {});
 

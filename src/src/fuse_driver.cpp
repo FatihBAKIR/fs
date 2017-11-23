@@ -11,6 +11,7 @@
 #include <fs270/directory.hpp>
 #include <boost/predef.h>
 #include <chrono>
+#include <boost/type_index.hpp>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -43,6 +44,17 @@ auto from_tspec(const timespec& ts)
     return tp;
 }
 
+int parent_dir(fs::fs_instance& fs, const char* p)
+{
+    auto v = boost::string_view(p);
+    auto last = v.rfind('/');
+    auto to_find = v.substr(0, last);
+    auto name = v.substr(last + 1, v.size());
+
+    auto dir_inum = fs::lookup(fs, to_find);
+    return dir_inum;
+}
+
 int create_inode(fs::fs_instance& fs, const char* p)
 {
     auto v = boost::string_view(p);
@@ -73,15 +85,16 @@ extern "C" {
 struct fs_opaque;
 
 void *fs_init(struct fuse_conn_info *conn) {
-    auto ctx = fuse_get_context();
-
-    std::cout << ctx->private_data << '\n';
-
     auto fs = fs::fs_instance::load_heap(
-            std::make_unique<fs::mmap_block_dev>("/tmp/fs", 1LL * 1024 * 1024 * 1024, 4096));
+            std::make_unique<fs::config::block_dev_type>("/media/fatih/D9E0-4BC6/fs", 1LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
+    spdlog::set_async_mode(8192 * 4);
     priv->log = spdlog::stderr_color_st("fslog");
+
+    priv->log->info("Initiated filesystem");
+    priv->log->info("Using \"{}\" as the block device", boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
+    priv->log->info("Fuse version: {}", fuse_version());
 
     return priv;
 }
@@ -90,6 +103,27 @@ void fs_destroy(void* arg)
 {
     auto fsp = static_cast<fs_fuse_private *>(arg);
     delete fsp;
+}
+
+int fs_statfs(const char*, struct statvfs* stat)
+{
+    auto priv = get_private();
+    priv->log->info("Statfs");
+    fs::fs_instance* inst = priv->fs.get();
+    stat->f_blocks = inst->get_total_blocks();
+    stat->f_bsize = inst->blk_cache()->device()->get_block_size();
+    stat->f_frsize = stat->f_bsize;
+    stat->f_bfree = inst->allocator()->get_num_free_blocks();
+    stat->f_bavail = inst->allocator()->get_num_free_blocks();
+
+    stat->f_files = inst->get_number_inodes();
+    stat->f_ffree = 1000000;
+    stat->f_favail = 1000000;
+
+    stat->f_fsid = 0xF5270;
+    stat->f_flag = 0;
+    stat->f_namemax = 255;
+    return 0;
 }
 
 int fs_open(const char *p, fuse_file_info *fi) {
@@ -110,6 +144,8 @@ int fs_open(const char *p, fuse_file_info *fi) {
 int fs_read(const char *p, char *buf, size_t sz, off_t off, fuse_file_info *fi) {
     auto priv = get_private();
     priv->log->info("Reading {}, {} bytes from {}", p, sz, off);
+
+    off = std::min<off_t>(off, 0x7ffff000);
 
     auto inode = priv->fs->get_inode(fi->fh);
     return inode->read(off, buf, sz);
@@ -229,7 +265,6 @@ int fs_truncate(const char* p, off_t sz)
     return 0;
 }
 
-
 int fs_create(const char* p, mode_t m, fuse_file_info* fi)
 {
     auto priv = get_private();
@@ -298,19 +333,83 @@ int fs_readlink(const char* p, char* buf, size_t bufsz)
     auto len = in->read(0, buf, bufsz);
     return 0;
 }
+
+int fs_link(const char* to, const char* p)
+{
+    auto priv = get_private();
+    priv->log->info("Link \"{}\" -> \"{}\"", p, to);
+
+    auto dir_inum = parent_dir(*priv->fs, p);
+    if (dir_inum < 0)
+    {
+        return -ENOENT;
+    }
+
+    auto to_inum = fs::lookup(*priv->fs, to);
+
+    if (to_inum < 0)
+    {
+        return -ENOENT;
+    }
+
+    auto name = boost::string_view(p);
+    name = name.substr(name.rfind('/') + 1, name.size());
+
+    auto dir = fs::directory(priv->fs->get_inode(dir_inum));
+    dir.add_entry(name, to_inum);
+
+    return 0;
 }
 
+int fs_unlink(const char* p)
+{
+    auto priv = get_private();
+    priv->log->info("Unlink \"{}\"", p);
+
+    auto parent_dirnum = parent_dir(*priv->fs, p);
+
+    if (parent_dirnum == 0)
+    {
+        return -ENOENT;
+    }
+
+    auto parent_dir = fs::directory(priv->fs->get_inode(parent_dirnum));
+
+    auto name = boost::string_view(p);
+    name = name.substr(name.rfind('/') + 1, name.size());
+
+    auto it = parent_dir.find(name);
+    if (it == parent_dir.end())
+    {
+        return -ENOENT;
+    }
+
+    auto inum = it.get_inumber();
+    fs::inode_ptr inode = priv->fs->get_inode(inum);
+
+    parent_dir.del_entry(name);
+
+    if (inode->get_hardlinks() == 0)
+    {
+        priv->log->info("Deleting \"{}\"", p);
+        inode->truncate(0);
+        inode.reset();
+        priv->fs->remove_inode(inum);
+    }
+
+    return 0;
+}
+}
 
 auto main(int argc, char **argv) -> int {
     std::unique_ptr<fuse_operations> ops = std::make_unique<fuse_operations>();
-    std::cout << "fuse version: " << fuse_version() << '\n';
 
     fuse_operations *p_ops = ops.get();
 
     /* Filesystem */
     p_ops->init     = fs_init;
     p_ops->destroy  = fs_destroy;
-    p_ops->statfs   = nullptr;
+    p_ops->statfs   = fs_statfs;
 
     /* Open/close  */
     p_ops->open     = fs_open;
@@ -341,8 +440,8 @@ auto main(int argc, char **argv) -> int {
     p_ops->rmdir    = nullptr;
 
     /* Hardlink stuff */
-    p_ops->link     = nullptr;
-    p_ops->unlink   = nullptr;
+    p_ops->link     = fs_link;
+    p_ops->unlink   = fs_unlink;
 
     /* Misc file stuff */
     p_ops->rename   = nullptr;
@@ -360,7 +459,13 @@ auto main(int argc, char **argv) -> int {
     p_ops->poll     = nullptr;
 #endif
 
-    std::cout << p_ops << '\n';
-    auto fuse_stat = fuse_main(argc, argv, p_ops, p_ops);
+    std::set_terminate([]{
+        auto priv = get_private();
+        priv->log->error("Exception thrown, trying to save everything and abort!");
+        delete priv;
+        std::abort();
+    });
+
+    auto fuse_stat = fuse_main(argc, argv, p_ops, nullptr);
     return fuse_stat;
 }
