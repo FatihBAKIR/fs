@@ -116,7 +116,11 @@ int fs_statfs(const char*, struct statvfs* stat)
     stat->f_bfree = inst->allocator()->get_num_free_blocks();
     stat->f_bavail = inst->allocator()->get_num_free_blocks();
 
+#if BOOST_OS_MACOS
+    stat->f_files = 100000000;
+#elif BOOST_OS_LINUX
     stat->f_files = inst->get_number_inodes();
+#endif
     stat->f_ffree = 1000000;
     stat->f_favail = 1000000;
 
