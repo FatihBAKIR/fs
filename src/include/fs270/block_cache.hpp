@@ -8,10 +8,6 @@
 #include <fs270/config.hpp>
 #include <memory>
 #include <fs270/block.hpp>
-#include <set>
-#include <thread>
-#include <tbb/concurrent_queue.h>
-#include <tbb/concurrent_unordered_set.h>
 
 namespace fs
 {
@@ -46,21 +42,11 @@ public:
      */
     void sync();
 
-    /**
-     * Starts background thread to flush stuff
-     */
-    void start_thread();
 private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;
-    tbb::concurrent_queue<block*> m_writeback;
-    tbb::concurrent_queue<config::sector_id_t> m_delq;
-    std::thread m_sync;
 
     block_cache(config::block_dev_type& device) : m_device(&device) {}
-    std::atomic<bool> m_running;
-
-    void thread_tick();
 
     friend block_cache* get_cache(config::block_dev_type&);
 public:

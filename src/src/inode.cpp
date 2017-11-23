@@ -84,12 +84,16 @@ namespace fs {
         auto cache = m_fs->blk_cache();
         auto dev = cache->device();
 
+        //std::vector<block_ptr> blks;
+        //blks.reserve((len / 4096) + 1);
+
         while (len > 0) {
             auto blk_id = offset / dev->get_block_size();
             auto blk_offset = offset % dev->get_block_size();
 
             auto blk = cache->load(m_blocks.get_actual_block(blk_id));
             auto blk_buf = blk->data<const char>();
+            //blks.emplace_back(std::move(blk));
 
             auto copy_bytes = std::min<int32_t>(len, int32_t(dev->get_block_size()) - blk_offset);
 
@@ -238,12 +242,16 @@ namespace fs {
 
     void inode::write(config::address_t at, const inode &inode) {
         auto cache = inode.m_fs->blk_cache();
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         write_raw(cache, at, inode.m_data);
         fs::write_cont_file(cache, at + sizeof inode.m_data, inode.m_blocks);
     }
 
     inode inode::read(fs_instance &fs, config::address_t at) {
         auto cache = fs.blk_cache();
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         inode in(&fs);
         read_raw(cache, at, in.m_data);
         in.m_blocks = read_cont_file(cache, at + sizeof in.m_data);
@@ -253,6 +261,8 @@ namespace fs {
     void ::fs::detail::create_raw(block_cache *cache, config::address_t at) {
         inode_data data {};
         std::memset(&data, 0, sizeof data);
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         write_raw(cache, at, data);
         fs::write_cont_file(cache, at + sizeof data, fs::create_cont_file(cache));
     }

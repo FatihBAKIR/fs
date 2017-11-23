@@ -67,8 +67,6 @@ namespace fs {
         m_device = std::move(dev);
         m_ilist = std::make_unique<inode>(inode::read(*this, match.ilist_address));
 
-        m_cache->start_thread();
-
         // get the "next inode" and pointer to free list from iblock 0 of ilist
         // m_ilist.read(0, buf, fs::inode_size); // buf contains iblock 0
     }

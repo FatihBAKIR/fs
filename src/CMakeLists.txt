@@ -30,7 +30,7 @@ add_library(fs_blk_cache
         src/block_cache.cpp include/fs270/block_cache.hpp
         src/block.cpp include/fs270/block.hpp)
 target_link_libraries(fs_blk_cache PUBLIC fs_interface)
-target_link_libraries(fs_blk_cache PUBLIC ${Boost_LIBRARIES} ${TBB_LIBRARY} tbb)
+target_link_libraries(fs_blk_cache PUBLIC ${Boost_LIBRARIES} ${TBB_LIBRARY} tbb pthread)
 target_include_directories(fs_blk_cache PUBLIC ${Boost_INCLUDE_DIR} ${TBB_INCLUDE_DIR})
 
 add_library(fs_inode src/inode.cpp include/fs270/inode.hpp)
