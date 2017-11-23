@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <fs270/directory.hpp>
 #include <boost/predef.h>
+#include <chrono>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -38,7 +39,7 @@ auto from_tspec(const timespec& ts)
 {
     std::chrono::system_clock::time_point tp;
     tp += std::chrono::seconds(ts.tv_sec);
-    tp += std::chrono::nanoseconds(ts.tv_nsec);
+    //tp += std::chrono::nanoseconds(ts.tv_nsec);
     return tp;
 }
 
@@ -353,9 +354,11 @@ auto main(int argc, char **argv) -> int {
     p_ops->fsyncdir = nullptr;
     p_ops->lock     = nullptr;
     p_ops->bmap     = nullptr;
+    p_ops->mknod    = nullptr;
+#if BOOST_OS_LINUX
     p_ops->ioctl    = nullptr;
     p_ops->poll     = nullptr;
-    p_ops->mknod    = nullptr;
+#endif
 
     std::cout << p_ops << '\n';
     auto fuse_stat = fuse_main(argc, argv, p_ops, p_ops);
