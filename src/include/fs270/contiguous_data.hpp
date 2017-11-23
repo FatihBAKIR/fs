@@ -109,13 +109,13 @@ private:
     detail::contiguous_data m_data;
     block_cache* m_cache;
 
-    cont_file(const detail::contiguous_data& data, config::block_dev_type* dev)
-        : m_data(data), m_cache(get_cache(*dev)) {};
+    cont_file(const detail::contiguous_data& data, block_cache* cache)
+        : m_data(data), m_cache(cache) {};
 
-    friend cont_file read_cont_file(config::block_dev_type *device, config::address_t addr);
-    friend void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &);
+    friend cont_file read_cont_file(block_cache* device, config::address_t addr);
+    friend void write_cont_file(block_cache* device, config::address_t addr, const cont_file &);
 
-    friend cont_file create_cont_file(config::block_dev_type *device);
+    friend cont_file create_cont_file(block_cache* device);
 
     boost::container::static_vector<config::sector_id_t, 3>
     calc_path(virtual_block_id) const;
@@ -127,20 +127,20 @@ private:
  * @param addr Address of the data
  * @return Contiguous file object
  */
-cont_file read_cont_file(config::block_dev_type *device, config::address_t addr);
+cont_file read_cont_file(block_cache* device, config::address_t addr);
 
 /**
  * Writes the given contiguous file object to the given device at the given address
  * @param device Device to write to
  * @param addr Address to write the object to
  */
-void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &);
+void write_cont_file(block_cache* device, config::address_t addr, const cont_file &);
 
 /**
  * Creates an empty contiguous file object in memory
  * @param device Device the file will belong to
  * @return Newly created contiguous file
  */
-cont_file create_cont_file(config::block_dev_type *device);
+cont_file create_cont_file(block_cache* device);
 }
 

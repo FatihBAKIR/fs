@@ -10,25 +10,25 @@
 
 
 namespace fs {
-    cont_file read_cont_file(config::block_dev_type* device, config::address_t addr)
+    cont_file read_cont_file(block_cache* cache, config::address_t addr)
     {
-        auto blk_index = addr/device->get_block_size();
-        auto offset = addr%device->get_block_size();
-        auto buf = get_cache(*device)->load(blk_index);
+        auto blk_index = addr/cache->device()->get_block_size();
+        auto offset = addr%cache->device()->get_block_size();
+        auto buf = cache->load(blk_index);
         auto ptr = buf->data<detail::contiguous_data>(offset);
-        return {*ptr, device};
+        return {*ptr, cache};
     }
 
-    void write_cont_file(config::block_dev_type* device, config::address_t addr, const cont_file& file)
+    void write_cont_file(block_cache* cache, config::address_t addr, const cont_file& file)
     {
-        auto blk_index = addr/device->get_block_size();
-        auto offset = addr%device->get_block_size();
-        auto buf = get_cache(*device)->load(blk_index);
+        auto blk_index = addr/cache->device()->get_block_size();
+        auto offset = addr%cache->device()->get_block_size();
+        auto buf = cache->load(blk_index);
         auto ptr = buf->data<detail::contiguous_data>(offset);
         *ptr = file.m_data;
     }
 
-    cont_file create_cont_file(config::block_dev_type* device)
+    cont_file create_cont_file(block_cache* cache)
     {
         detail::contiguous_data data;
         data.block_count = 0;
@@ -38,7 +38,7 @@ namespace fs {
         std::fill(begin(data.first_indirect_blocks), end(data.first_indirect_blocks), config::nullsect);
         std::fill(begin(data.second_indirect_blocks), end(data.second_indirect_blocks), config::nullsect);
         std::fill(begin(data.third_indirect_blocks), end(data.third_indirect_blocks), config::nullsect);
-        return {data, device};
+        return {data, cache};
     }
 
     int32_t cont_file::get_block_count() const

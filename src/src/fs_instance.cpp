@@ -30,6 +30,7 @@ namespace fs {
     fs_instance::~fs_instance() {
         if (!m_ilist) return;
         inode::write(m_superblk.ilist_address, *m_ilist);
+        m_cache->sync();
     }
 
     fs_instance::fs_instance(std::unique_ptr<config::block_dev_type> dev) {
@@ -65,6 +66,8 @@ namespace fs {
         m_cache = cache;
         m_device = std::move(dev);
         m_ilist = std::make_unique<inode>(inode::read(*this, match.ilist_address));
+
+        m_cache->start_thread();
 
         // get the "next inode" and pointer to free list from iblock 0 of ilist
         // m_ilist.read(0, buf, fs::inode_size); // buf contains iblock 0

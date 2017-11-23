@@ -121,11 +121,11 @@ namespace fs {
         while (len > 0) {
             auto blk_id = offset / dev->get_block_size();
             auto blk_offset = offset % dev->get_block_size();
-
-            auto blk = cache->load(m_blocks.get_actual_block(blk_id));
-            auto blk_buf = blk->data<char>();
-
             auto copy_bytes = std::min<int32_t>(len, int32_t(dev->get_block_size()) - blk_offset);
+
+            auto blk = cache->load(m_blocks.get_actual_block(blk_id),
+                                    copy_bytes == dev->get_block_size());
+            auto blk_buf = blk->data<char>();
 
             std::copy(buffer, buffer + copy_bytes, blk_buf + blk_offset);
             buffer += copy_bytes;
@@ -184,7 +184,7 @@ namespace fs {
         update_mod_time();
     }
 
-    inode::inode(fs_instance *inst) : m_fs(inst), m_blocks(fs::create_cont_file(inst->blk_cache()->device())) {
+    inode::inode(fs_instance *inst) : m_fs(inst), m_blocks(fs::create_cont_file(inst->blk_cache())) {
     }
 
     inode inode::create(fs_instance &fs) {
@@ -239,14 +239,14 @@ namespace fs {
     void inode::write(config::address_t at, const inode &inode) {
         auto cache = inode.m_fs->blk_cache();
         write_raw(cache, at, inode.m_data);
-        fs::write_cont_file(cache->device(), at + sizeof inode.m_data, inode.m_blocks);
+        fs::write_cont_file(cache, at + sizeof inode.m_data, inode.m_blocks);
     }
 
     inode inode::read(fs_instance &fs, config::address_t at) {
         auto cache = fs.blk_cache();
         inode in(&fs);
         read_raw(cache, at, in.m_data);
-        in.m_blocks = read_cont_file(cache->device(), at + sizeof in.m_data);
+        in.m_blocks = read_cont_file(cache, at + sizeof in.m_data);
         return in;
     }
 
@@ -254,6 +254,6 @@ namespace fs {
         inode_data data {};
         std::memset(&data, 0, sizeof data);
         write_raw(cache, at, data);
-        fs::write_cont_file(cache->device(), at + sizeof data, fs::create_cont_file(cache->device()));
+        fs::write_cont_file(cache, at + sizeof data, fs::create_cont_file(cache));
     }
 }

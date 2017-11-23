@@ -23,14 +23,15 @@ target_link_libraries(fs_disk_blk PUBLIC fs_interface)
 add_library(fs_cont_data src/contiguous_data.cpp include/fs270/contiguous_data.hpp)
 target_link_libraries(fs_cont_data PUBLIC fs_interface fs_blk_cache)
 
+find_package(TBB REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 add_library(fs_blk_cache
         src/block_cache.cpp include/fs270/block_cache.hpp
         src/block.cpp include/fs270/block.hpp)
 target_link_libraries(fs_blk_cache PUBLIC fs_interface)
-target_link_libraries(fs_blk_cache PUBLIC ${Boost_LIBRARIES})
-target_include_directories(fs_blk_cache PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(fs_blk_cache PUBLIC ${Boost_LIBRARIES} ${TBB_LIBRARY} tbb)
+target_include_directories(fs_blk_cache PUBLIC ${Boost_INCLUDE_DIR} ${TBB_INCLUDE_DIR})
 
 add_library(fs_inode src/inode.cpp include/fs270/inode.hpp)
 target_link_libraries(fs_inode PUBLIC fs_interface fs_cont_data fs_blk_cache fs_instance)

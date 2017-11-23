@@ -48,18 +48,24 @@ namespace fs
         m_capacity = size;
         m_blk_size = block_size;
         fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
-        ftruncate(fd, size);
+        //ftruncate(fd, size);
 
         if(fd == -1){
+            perror("open: ");
             throw std::runtime_error("can't open device!");
         }
+
         if (lseek(fd, size, SEEK_SET) == -1){
             close(fd);
-            throw std::runtime_error("can't open device!");
+            throw std::runtime_error("can't seek device!");
         }
-        if(::write(fd, "", 1) < 0){
+
+        char buf[4096];
+        std::fill(std::begin(buf), std::end(buf), 0);
+
+        if(::write(fd, buf, 4096) < 0){
             close(fd);
-            throw std::runtime_error("can't open device!");
+            throw std::runtime_error("can't write device!");
         }
     }
 
