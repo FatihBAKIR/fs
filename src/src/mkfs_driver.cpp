@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv)
 {
-    auto blk_dev = std::make_unique<fs::config::block_dev_type>("/tmp/fs", 1LL * 1024 * 1024 * 1024, 4096);
+    auto blk_dev = std::make_unique<fs::config::block_dev_type>("/dev/sdb", 1LL * 1024 * 1024 * 1024, 4096);
     auto fs = fs::make_fs(std::move(blk_dev), {});
 
     std::cout << "free blocks: " << fs.allocator()->get_num_free_blocks() << '\n';

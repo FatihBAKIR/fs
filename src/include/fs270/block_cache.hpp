@@ -8,6 +8,10 @@
 #include <fs270/config.hpp>
 #include <memory>
 #include <fs270/block.hpp>
+#include <tbb/task_group.h>
+#include <future>
+#include <vector>
+#include <boost/optional.hpp>
 
 namespace fs
 {
@@ -23,6 +27,8 @@ public:
      * @return pointer to the block
      */
     block_ptr load(config::sector_id_t id, bool zero_sector = false);
+
+    std::future<block_ptr> load_async(config::sector_id_t id, bool zero = false);
 
     /**
      * Gets the underlying device
@@ -45,6 +51,9 @@ public:
 private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;
+    std::vector<boost::optional<std::promise<block_ptr>>> m_proms;
+
+    tbb::task_group m_tg;
 
     block_cache(config::block_dev_type& device) : m_device(&device) {}
 

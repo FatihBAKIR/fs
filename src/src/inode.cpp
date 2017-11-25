@@ -84,16 +84,12 @@ namespace fs {
         auto cache = m_fs->blk_cache();
         auto dev = cache->device();
 
-        //std::vector<block_ptr> blks;
-        //blks.reserve((len / 4096) + 1);
-
         while (len > 0) {
             auto blk_id = offset / dev->get_block_size();
             auto blk_offset = offset % dev->get_block_size();
 
             auto blk = cache->load(m_blocks.get_actual_block(blk_id));
             auto blk_buf = blk->data<const char>();
-            //blks.emplace_back(std::move(blk));
 
             auto copy_bytes = std::min<int32_t>(len, int32_t(dev->get_block_size()) - blk_offset);
 

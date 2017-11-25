@@ -43,6 +43,13 @@ auto from_tspec(const timespec& ts)
     return tp;
 }
 
+boost::string_view get_name(boost::string_view v)
+{
+    auto last = v.rfind('/');
+    auto name = v.substr(last + 1, v.size());
+    return name;
+}
+
 int parent_dir(fs::fs_instance& fs, const char* p)
 {
     auto v = boost::string_view(p);
@@ -85,7 +92,7 @@ struct fs_opaque;
 
 void *fs_init(struct fuse_conn_info *conn) {
     auto fs = fs::fs_instance::load_heap(
-            std::make_unique<fs::config::block_dev_type>("/tmp/fs", 1LL * 1024 * 1024 * 1024, 4096));
+            std::make_unique<fs::config::block_dev_type>("/dev/sdb", 1LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
     spdlog::set_async_mode(8192 * 4);
@@ -402,6 +409,48 @@ int fs_unlink(const char* p)
 
     return 0;
 }
+
+int fs_rmdir(const char* p)
+{
+    auto priv = get_private();
+    priv->log->info("Rmdir \"{}\"", p);
+
+    auto parent_dir_inum = parent_dir(*priv->fs, p);
+    if (parent_dir_inum == 0)
+    {
+        return -ENOENT;
+    }
+
+    auto name = get_name(p);
+
+    auto parent_dir = fs::directory(priv->fs->get_inode(parent_dir_inum));
+
+    auto it = parent_dir.find(name);
+
+    if (it == parent_dir.end())
+    {
+        return -ENOENT;
+    }
+
+    auto inum = it.get_inumber();
+    fs::inode_ptr child_inode = priv->fs->get_inode(inum);
+    auto child_dir = fs::directory(child_inode);
+
+    if (child_dir.begin() != child_dir.end())
+    {
+        // folder is not empty
+        return -EPERM;
+    }
+
+    parent_dir.del_entry(name);
+
+    if (child_inode->get_hardlinks() == 0)
+    {
+        priv->log->info("Deleting \"{}\"", p);
+        child_inode->truncate(0);
+        child_inode.reset();
+        priv->fs->remove_inode(inum);
+    }
 }
 
 int fs_mkdir(const char* p, mode_t m){
@@ -446,6 +495,7 @@ int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, s
 
     return 0;
 }
+}
 
 
 auto main(int argc, char **argv) -> int {
@@ -484,7 +534,7 @@ auto main(int argc, char **argv) -> int {
     p_ops->mkdir    = fs_mkdir;
     p_ops->opendir  = nullptr;
     p_ops->readdir  = fs_readdir;
-    p_ops->rmdir    = nullptr;
+    p_ops->rmdir    = fs_rmdir;
 
     /* Hardlink stuff */
     p_ops->link     = fs_link;
