@@ -1,7 +1,6 @@
 //
 // Created by fatih on 11/17/17.
 //
-
 #include <fuse.h>
 #include <string>
 #include <memory>
@@ -86,7 +85,7 @@ struct fs_opaque;
 
 void *fs_init(struct fuse_conn_info *conn) {
     auto fs = fs::fs_instance::load_heap(
-            std::make_unique<fs::config::block_dev_type>("/dev/sdb", 1LL * 1024 * 1024 * 1024, 4096));
+            std::make_unique<fs::config::block_dev_type>("/tmp/fs", 1LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
     spdlog::set_async_mode(8192 * 4);
@@ -405,6 +404,50 @@ int fs_unlink(const char* p)
 }
 }
 
+int fs_mkdir(const char* p, mode_t m){
+
+    auto priv = get_private();
+    priv ->log->info("Mkdir \"{}\"",p);
+
+    auto parent_dirnum = parent_dir(*priv->fs, p);
+
+    auto v = boost::string_view(p);
+    auto last = v.rfind('/');
+    auto to_find = v.substr(0, last);
+    auto name = v.substr(last + 1, v.size());
+
+    auto root_dir = fs::directory(priv->fs->get_inode(parent_dirnum));
+    auto new_dir = priv->fs->create_inode();
+    root_dir.add_entry(name, new_dir);
+    auto new_in = priv->fs->get_inode(new_dir);
+    new_in->set_type(fs::inode_type::directory);
+    new_in->set_owner(fuse_get_context()->uid);
+    new_in->set_group(fuse_get_context()->gid);
+    new_in->set_mode(m);
+
+    return 0;
+}
+
+int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* fi){
+
+    auto priv = get_private();
+    priv ->log->info("Readdir \"{}\"",p);
+
+    auto inum = fs::lookup(*priv->fs, p);
+    auto dir = fs::directory(priv->fs->get_inode(inum));
+
+    filler(buf, ".", nullptr, 0);
+    filler(buf, "..", nullptr, 0);
+
+    for (auto entry : dir)
+    {
+        filler(buf, entry.first.c_str(), nullptr, 0);
+    }
+
+    return 0;
+}
+
+
 auto main(int argc, char **argv) -> int {
     std::unique_ptr<fuse_operations> ops = std::make_unique<fuse_operations>();
 
@@ -438,9 +481,9 @@ auto main(int argc, char **argv) -> int {
     p_ops->readlink = fs_readlink;
 
     /* Directory stuff */
-    p_ops->mkdir    = nullptr;
+    p_ops->mkdir    = fs_mkdir;
     p_ops->opendir  = nullptr;
-    p_ops->readdir  = nullptr;
+    p_ops->readdir  = fs_readdir;
     p_ops->rmdir    = nullptr;
 
     /* Hardlink stuff */

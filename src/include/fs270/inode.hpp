@@ -22,6 +22,7 @@ enum class inode_type: uint8_t
  */
 struct alignas(64) inode_data
 {
+    int32_t free_marker = 0;
     int32_t file_size;
     uint8_t ref_cnt;
     inode_type type;
@@ -31,7 +32,7 @@ struct alignas(64) inode_data
     time_t mod_time;
     time_t creat_time;
     time_t access_time;
-    char __pad__[24];
+    char __pad__[16];
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
