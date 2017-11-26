@@ -127,6 +127,7 @@ namespace fs {
         }
         case 2: {
             if (m_data.first_indirect_blocks[path[0]]==config::nullsect) {
+                m_data.pushable_count++;
                 m_data.block_count--;
                 return false;
             }
@@ -137,11 +138,13 @@ namespace fs {
         }
         case 3: {
             if (m_data.second_indirect_blocks[path[0]]==config::nullsect) {
+                m_data.pushable_count++;
                 m_data.block_count--;
                 return false;
             }
             auto buf = m_cache->load(m_data.second_indirect_blocks[path[0]]);
             if (buf->data<const config::sector_id_t>()[path[1]]==config::nullsect) {
+                m_data.pushable_count++;
                 m_data.block_count--;
                 return false;
             }

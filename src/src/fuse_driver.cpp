@@ -92,7 +92,7 @@ struct fs_opaque;
 
 void *fs_init(struct fuse_conn_info *conn) {
     auto fs = fs::fs_instance::load_heap(
-            std::make_unique<fs::config::block_dev_type>("/dev/sdb", 1LL * 1024 * 1024 * 1024, 4096));
+            std::make_unique<fs::config::block_dev_type>("/dev/sdb", 10LL * 1024 * 1024 * 1024, 4096));
 
     auto priv = new fs_fuse_private(std::move(fs));
     spdlog::set_async_mode(8192 * 4);

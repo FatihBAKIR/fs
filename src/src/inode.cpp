@@ -181,6 +181,10 @@ namespace fs {
                 m_blocks.push_block(blk);
             }
         }
+        if (m_blocks.get_block_count() * m_fs->blk_cache()->device()->get_block_size() < size())
+        {
+            throw std::runtime_error("truncate fail");
+        }
         update_mod_time();
     }
 
