@@ -434,13 +434,17 @@ int fs_rmdir(const char* p)
 
     auto inum = it.get_inumber();
     fs::inode_ptr child_inode = priv->fs->get_inode(inum);
-    auto child_dir = fs::directory(child_inode);
 
-    if (child_dir.begin() != child_dir.end())
     {
-        // folder is not empty
-        return -EPERM;
+        auto child_dir = fs::directory(child_inode);
+
+        if (child_dir.begin() != child_dir.end())
+        {
+            // folder is not empty
+            return -EPERM;
+        }
     }
+
 
     parent_dir.del_entry(name);
 
@@ -495,6 +499,33 @@ int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, s
 
     return 0;
 }
+
+int fs_rename(const char* p, const char* to)
+{
+    auto priv = get_private();
+    priv ->log->info("Rename \"{}\" -> \"{}\"",p, to);
+
+    auto old_parent = parent_dir(*priv->fs, p);
+    auto new_parent = parent_dir(*priv->fs, to);
+
+    if (old_parent == 0 || new_parent == 0)
+    {
+        return -ENOENT;
+    }
+
+    auto old_name = get_name(p);
+    auto new_name = get_name(to);
+
+    auto old_dir = fs::directory(priv->fs->get_inode(old_parent));
+    auto new_dir = fs::directory(priv->fs->get_inode(new_parent));
+
+    auto old_it = old_dir.find(old_name);
+
+    new_dir.add_entry(new_name, old_it.get_inumber());
+    old_dir.del_entry(old_name);
+
+    return 0;
+}
 }
 
 
@@ -541,11 +572,11 @@ auto main(int argc, char **argv) -> int {
     p_ops->unlink   = fs_unlink;
 
     /* Misc file stuff */
-    p_ops->rename   = nullptr;
+    p_ops->rename   = fs_rename;
     p_ops->flush    = nullptr;
 
     /* Don't know if we actually need these ones */
-    p_ops->access   = fs_access;
+    p_ops->access   = nullptr;
     p_ops->fsync    = nullptr;
     p_ops->fsyncdir = nullptr;
     p_ops->lock     = nullptr;

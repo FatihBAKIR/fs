@@ -57,3 +57,21 @@ TEST_CASE("inode_return test", "[fs][inode]") {
         REQUIRE(std::memcmp(buf.data(), "hello world", 11) == 0);
     }
 }
+
+TEST_CASE("deletion", "[fs][ilist]")
+{
+    auto blk_dev = fs::tests::get_block_dev();
+    auto fsi = fs::make_fs(std::move(blk_dev), {});
+
+    auto n = fsi.create_inode();
+    auto n1 = fsi.create_inode();
+    auto n2 = fsi.create_inode();
+
+    fsi.remove_inode(n);
+    fsi.remove_inode(n1);
+    fsi.remove_inode(n2);
+
+    auto n3 = fsi.create_inode();
+    auto n4 = fsi.create_inode();
+    auto n5 = fsi.create_inode();
+}

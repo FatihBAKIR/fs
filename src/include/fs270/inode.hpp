@@ -221,6 +221,10 @@ private:
 
 public:
 
+    int get_mem_refcnt() const
+    {
+        return m_refcnt;
+    }
     explicit inode(fs_instance* inst);
 };
 
