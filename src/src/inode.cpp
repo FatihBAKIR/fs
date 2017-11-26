@@ -102,7 +102,11 @@ namespace fs {
         return read_res;
     }
 
-    void inode::write(uint32_t from, const void *buf, int32_t len) {
+    void inode::write(uint64_t from, const void *buf, int32_t len) {
+        if (from / m_fs->blk_cache()->device()->get_block_size() == 8198)
+        {
+            int x = 0;
+        }
         if (from + len > size())
         {
             truncate(from + len);
@@ -123,8 +127,13 @@ namespace fs {
             auto blk_offset = offset % dev->get_block_size();
             auto copy_bytes = std::min<int32_t>(len, int32_t(dev->get_block_size()) - blk_offset);
 
-            auto blk = cache->load(m_blocks.get_actual_block(blk_id),
-                                    copy_bytes == dev->get_block_size());
+            auto a_blk_id = m_blocks.get_actual_block(blk_id);
+            if (a_blk_id == config::nullsect)
+            {
+                a_blk_id = m_blocks.get_actual_block(blk_id);
+                throw null_block_exception{};
+            }
+            auto blk = cache->load(a_blk_id, copy_bytes == dev->get_block_size());
             auto blk_buf = blk->data<char>();
 
             std::copy(buffer, buffer + copy_bytes, blk_buf + blk_offset);
@@ -208,7 +217,7 @@ namespace fs {
         auto offset = ioptr % blk_sz;
 
         auto physical_blk_id = m_blocks.get_actual_block(blk_id);
-        auto address = physical_blk_id * blk_sz + offset;
+        auto address = config::address_t(physical_blk_id) * blk_sz + offset;
         return address;
     }
 

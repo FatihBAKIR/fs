@@ -10,7 +10,7 @@
 namespace fs {
     block_ptr block_cache::load(config::sector_id_t id, bool zero)
     {
-        if (id==0) {
+        if (id <= 0) {
             throw null_block_exception();
         }
 

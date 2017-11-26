@@ -22,7 +22,7 @@ namespace fs
 
         static inline constexpr block_dev_type::sector_id_t nullsect = 0;
 
-        using address_t = uint32_t;
+        using address_t = uint64_t;
 
         using sector_id_t = block_dev_type::sector_id_t;
     };

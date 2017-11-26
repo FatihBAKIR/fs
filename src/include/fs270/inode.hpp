@@ -138,7 +138,7 @@ public:
      * @param buf buffer to copy from
      * @param len length of the buffer
      */
-    void write(uint32_t from, const void *buf, int32_t len);
+    void write(uint64_t from, const void *buf, int32_t len);
 
     using clock = std::chrono::system_clock;
 

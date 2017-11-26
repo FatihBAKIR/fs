@@ -11,6 +11,7 @@
 #include <boost/predef.h>
 #include <chrono>
 #include <boost/type_index.hpp>
+#include <spdlog/sinks/null_sink.h>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -96,7 +97,7 @@ void *fs_init(struct fuse_conn_info *conn) {
 
     auto priv = new fs_fuse_private(std::move(fs));
     spdlog::set_async_mode(8192 * 4);
-    priv->log = spdlog::stderr_color_st("fslog");
+    priv->log = std::make_shared<spdlog::logger>("null_log",std::make_shared<spdlog::sinks::null_sink_st>()); //spdlog::stderr_color_st("fslog");
 
     priv->log->info("Initiated filesystem");
     priv->log->info("Using \"{}\" as the block device", boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());

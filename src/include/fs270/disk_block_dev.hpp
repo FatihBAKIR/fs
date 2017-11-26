@@ -31,6 +31,6 @@ namespace fs
         int fd;
         uint16_t m_blk_size;
 
-        int get_block_offset(sector_id_t sector);
+        uint64_t get_block_offset(sector_id_t sector);
     };
 }

@@ -16,7 +16,7 @@ namespace fs
         if( id < 0 )
             return -1;
 
-        int byte_offset = get_block_offset(id);
+        uint64_t byte_offset = get_block_offset(id);
         if( ( byte_offset + disk_block_dev::m_blk_size ) >= disk_block_dev::m_capacity )
             return -1;
 
@@ -33,7 +33,7 @@ namespace fs
         if( id < 0 )
             return -1;
 
-        int byte_offset = get_block_offset(id);
+        uint64_t byte_offset = get_block_offset(id);
         if( ( byte_offset + disk_block_dev::m_blk_size ) >= disk_block_dev::m_capacity )
             return -1;
 
@@ -69,9 +69,9 @@ namespace fs
         }
     }
 
-    int disk_block_dev::get_block_offset(disk_block_dev::sector_id_t sector)
+    uint64_t disk_block_dev::get_block_offset(disk_block_dev::sector_id_t sector)
     {
-        return sector * m_blk_size;
+        return uint64_t (sector) * m_blk_size;
     }
 
     uint16_t disk_block_dev::get_block_size() const
