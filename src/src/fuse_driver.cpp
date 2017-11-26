@@ -97,7 +97,9 @@ void *fs_init(struct fuse_conn_info *conn) {
 
     auto priv = new fs_fuse_private(std::move(fs));
     spdlog::set_async_mode(8192 * 4);
-    priv->log = std::make_shared<spdlog::logger>("null_log",std::make_shared<spdlog::sinks::null_sink_st>()); //spdlog::stderr_color_st("fslog");
+    priv->log =
+            spdlog::stderr_color_st("fslog");
+            //std::make_shared<spdlog::logger>("null_log",std::make_shared<spdlog::sinks::null_sink_st>());
 
     priv->log->info("Initiated filesystem");
     priv->log->info("Using \"{}\" as the block device", boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
@@ -456,6 +458,8 @@ int fs_rmdir(const char* p)
         child_inode.reset();
         priv->fs->remove_inode(inum);
     }
+
+    return 0;
 }
 
 int fs_mkdir(const char* p, mode_t m){
@@ -521,9 +525,39 @@ int fs_rename(const char* p, const char* to)
     auto new_dir = fs::directory(priv->fs->get_inode(new_parent));
 
     auto old_it = old_dir.find(old_name);
+    if (old_it == old_dir.end())
+    {
+        return -ENOENT;
+    }
 
-    new_dir.add_entry(new_name, old_it.get_inumber());
+    auto old_inum = old_it.get_inumber();
+    auto new_it = new_dir.find(new_name);
+
+    if (new_it != new_dir.end())
+    {
+        auto exist = new_it.get_inumber();
+        auto exist_inode = priv->fs->get_inode(exist);
+        new_dir.del_entry(new_name);
+        if (exist_inode->get_hardlinks() == 0)
+        {
+            exist_inode->truncate(0);
+            exist_inode.reset();
+            priv->fs->remove_inode(exist);
+        }
+    }
+
+    new_dir.add_entry(new_name, old_inum);
+
+    auto old_inode = priv->fs->get_inode(old_inum);
+
     old_dir.del_entry(old_name);
+
+    if (old_inode->get_hardlinks() == 0)
+    {
+        old_inode->truncate(0);
+        old_inode.reset();
+        priv->fs->remove_inode(old_inum);
+    }
 
     return 0;
 }
