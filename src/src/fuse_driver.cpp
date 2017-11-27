@@ -88,6 +88,44 @@ int create_inode(fs::fs_instance& fs, const char* p)
     return inum;
 }
 
+void fill_stats(fs::inode_ptr inode, struct stat* stbuf)
+{
+    auto priv = get_private();
+    memset(stbuf, 0, sizeof *stbuf);
+    stbuf->st_mode = inode->get_mode();
+
+    switch (inode->get_type()) {
+        case fs::inode_type::regular:
+            stbuf->st_mode |= S_IFREG;
+            break;
+        case fs::inode_type::directory:
+            stbuf->st_mode |= S_IFDIR;
+            break;
+        case fs::inode_type::symlink:
+            stbuf->st_mode |= S_IFLNK;
+            break;
+    }
+
+    stbuf->st_nlink = std::max<int>(1, inode->get_hardlinks());
+    stbuf->st_size = inode->size();
+
+#if BOOST_OS_LINUX
+    stbuf->st_atim = to_tspec(inode->get_access_time());
+    stbuf->st_mtim = to_tspec(inode->get_modification_time());
+    stbuf->st_ctim = to_tspec(inode->get_creation_time());
+#elif BOOST_OS_MACOS
+    stbuf->st_atimespec = to_tspec(inode->get_access_time());
+    stbuf->st_mtimespec = to_tspec(inode->get_modification_time());
+    stbuf->st_ctimespec = to_tspec(inode->get_creation_time());
+#endif
+
+    stbuf->st_blksize = priv->fs->blk_cache()->device()->get_block_size();
+    stbuf->st_blocks = inode->capacity() / stbuf->st_blksize;
+    stbuf->st_uid = inode->get_owner();
+    stbuf->st_gid = inode->get_group();
+}
+
+
 extern "C" {
 struct fs_opaque;
 
@@ -200,6 +238,7 @@ int fs_chown(const char *p, uid_t u, gid_t g) {
     return 0;
 }
 
+
 int fs_getattr(const char *path, struct stat *stbuf) {
     auto priv = get_private();
     priv->log->info("Getattr {}", path);
@@ -211,38 +250,8 @@ int fs_getattr(const char *path, struct stat *stbuf) {
 
     fs::inode_ptr inode = priv->fs->get_inode(inum);
 
-    memset(stbuf, 0, sizeof *stbuf);
-    stbuf->st_mode = inode->get_mode();
+    fill_stats(inode, stbuf);
 
-    switch (inode->get_type()) {
-        case fs::inode_type::regular:
-            stbuf->st_mode |= S_IFREG;
-            break;
-        case fs::inode_type::directory:
-            stbuf->st_mode |= S_IFDIR;
-            break;
-        case fs::inode_type::symlink:
-            stbuf->st_mode |= S_IFLNK;
-            break;
-    }
-
-    stbuf->st_nlink = std::max<int>(1, inode->get_hardlinks());
-    stbuf->st_size = inode->size();
-
-#if BOOST_OS_LINUX
-    stbuf->st_atim = to_tspec(inode->get_access_time());
-    stbuf->st_mtim = to_tspec(inode->get_modification_time());
-    stbuf->st_ctim = to_tspec(inode->get_creation_time());
-#elif BOOST_OS_MACOS
-    stbuf->st_atimespec = to_tspec(inode->get_access_time());
-    stbuf->st_mtimespec = to_tspec(inode->get_modification_time());
-    stbuf->st_ctimespec = to_tspec(inode->get_creation_time());
-#endif
-
-    stbuf->st_blksize = priv->fs->blk_cache()->device()->get_block_size();
-    stbuf->st_blocks = inode->capacity() / stbuf->st_blksize;
-    stbuf->st_uid = inode->get_owner();
-    stbuf->st_gid = inode->get_group();
     return 0;
 }
 
@@ -499,7 +508,10 @@ int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, s
 
     for (auto entry : dir)
     {
-        filler(buf, entry.first.c_str(), nullptr, 0);
+        struct stat s;
+        auto in = priv->fs->get_inode(entry.second);
+        fill_stats(in, &s);
+        filler(buf, entry.first.c_str(), &s, 0);
     }
 
     return 0;
