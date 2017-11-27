@@ -54,3 +54,29 @@ TEST_CASE("auto flush", "[fs][cache]")
         REQUIRE(std::memcmp(x->data(), "hello world", 12) == 0);
     }
 }
+
+TEST_CASE("async load", "[fs][cache]")
+{
+    auto dev = fs::tests::get_block_dev();
+    auto cache = get_cache(*dev);
+
+    {
+        auto blk = cache->load(1, true);
+        std::array<char, 4096> x;
+        x.fill('a');
+        std::copy(x.data(), x.data() + x.size(), blk->data());
+        REQUIRE(blk->data()[0] == 'a');
+        x.fill('b');
+        blk = cache->load(2, true);
+        std::copy(x.data(), x.data() + x.size(), blk->data());
+    }
+
+    {
+        auto fut = cache->load_async(1, false);
+        auto fut2 = cache->load_async(2, false);
+        auto blk = fut.get();
+        auto blk2 = fut2.get();
+        REQUIRE(blk->data<const char>()[0] == 'a');
+        REQUIRE(blk2->data<const char>()[0] == 'b');
+    }
+}

@@ -4,6 +4,7 @@
 
 #include <fs270/directory.hpp>
 #include <tuple>
+#include <fs270/fsexcept.hpp>
 
 namespace fs
 {
@@ -52,6 +53,22 @@ namespace fs
         return { std::string(fname), inum };
     }
 
+    int dir_iterator::get_inumber() const {
+        uint8_t len;
+        m_dir_inode->read(m_dir_pos, &len, sizeof len);
+        int inum;
+        m_dir_inode->read(m_dir_pos + sizeof len + len, &inum, sizeof inum);
+        return inum;
+    }
+
+    std::string dir_iterator::get_name() const {
+        uint8_t len;
+        m_dir_inode->read(m_dir_pos, &len, sizeof len);
+        char fname[255];
+        m_dir_inode->read(m_dir_pos + sizeof len, fname, len);
+        fname[len] = 0;
+        return fname;
+    }
     dir_iterator directory::find(boost::string_view name) const {
         return dir_iterator(m_inode.get(), find(name, true));
     }
@@ -117,5 +134,13 @@ namespace fs
         m_inode->truncate(m_inode->size() - entry_len);
 
         m_inode->get_fs().get_inode(inumber)->decrement_hardlinks();
+    }
+
+    directory::directory(const inode_ptr &ptr)
+            : m_inode(std::move(ptr)) {
+        if (m_inode->get_type() != inode_type::directory)
+        {
+            throw inode_type_error{};
+        }
     }
 }

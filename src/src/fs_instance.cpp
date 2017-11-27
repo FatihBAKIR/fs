@@ -28,7 +28,9 @@ namespace fs {
 //    }
 
     fs_instance::~fs_instance() {
+        if (!m_ilist) return;
         inode::write(m_superblk.ilist_address, *m_ilist);
+        m_cache->sync();
     }
 
     fs_instance::fs_instance(std::unique_ptr<config::block_dev_type> dev) {
@@ -73,6 +75,10 @@ namespace fs {
         return fs_instance(std::move(dev));
     }
 
+    std::unique_ptr<fs_instance> fs_instance::load_heap(std::unique_ptr<config::block_dev_type> dev) {
+        return std::unique_ptr<fs_instance>{new fs_instance(std::move(dev))};
+    }
+
     void fs_instance::inode_return(const inode *in) {
         // get inode number from map
         for (auto it = m_ilist_map.begin(); it != m_ilist_map.end(); ++it) {
@@ -97,8 +103,14 @@ namespace fs {
             m_ilist->truncate((iaddr + 1) * fs::inode_size);
         } else { // otherwise, rearrange the pointers
             iaddr = free_ptr;
-            m_ilist->read(iaddr, &free_ptr,
+            m_ilist->read(iaddr * fs::inode_size, &free_ptr,
                           sizeof(int)); // is this undefined if it should be null? or will free_ptr rly be 0
+            char buf[16];
+            m_ilist->read(iaddr * fs::inode_size + sizeof(int), buf, 16);
+            if (strncmp(buf, "THISISAFREEINODE", 16) != 0)
+            {
+                throw std::runtime_error("ilist is broken");
+            }
             // update free_ptr
             m_ilist->write(0, &free_ptr, sizeof(int));
         }
@@ -110,7 +122,7 @@ namespace fs {
     }
 
     inode_ptr fs_instance::get_inode(int32_t inum) {
-        // use the map as a cache
+        if (inum == 0) return nullptr;
         auto it = m_ilist_map.find(inum);
         if (it == m_ilist_map.end()) {
             // not on the map, need to get from disk
@@ -124,12 +136,24 @@ namespace fs {
     }
 
     void fs_instance::remove_inode(int32_t inum) {
+        {
+            auto in = get_inode(inum);
+            if (in->get_hardlinks() != 0)
+            {
+                throw alive_inode_exception{};
+            }
+            if (in->get_mem_refcnt() != 1)
+            {
+                throw alive_inode_exception{};
+            }
+        }
         // make sure to write a pointer or nullptr to the removed inode
         int free_ptr, nin; // number of inodes
         m_ilist->read(0, &free_ptr, sizeof(int));
         m_ilist->read(sizeof(int), &nin, sizeof(int));
         // point new block to begin of list (effectively placing it at the beginning)
         m_ilist->write(inum * fs::inode_size, &free_ptr, sizeof(int));
+        m_ilist->write(inum * fs::inode_size + sizeof(int), "THISISAFREEINODE", 16);
         free_ptr = inum;
         m_ilist->write(0, &free_ptr, sizeof(int));
         nin--;

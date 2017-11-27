@@ -22,6 +22,11 @@ public:
     bool operator==(const dir_iterator& rhs) const;
     bool operator!=(const dir_iterator& rhs) const;
 
+    int get_inumber() const;
+    std::string get_name() const;
+
+    bool compare_name(boost::string_view name) const;
+
     friend class directory;
 private:
     dir_iterator(const inode* in, uint64_t pos) :
@@ -55,12 +60,51 @@ public:
 
     dir_iterator find(boost::string_view name) const;
 
-    explicit directory(const inode_ptr& ptr) : m_inode(std::move(ptr)) {}
+    explicit directory(const inode_ptr& ptr);
 private:
     uint64_t find(boost::string_view name, bool) const;
 
-    inode_ptr m_inode;
+    inode_ptr m_inode{};
 };
+
+inline int lookup(fs::fs_instance& fs, boost::string_view path)
+{
+    auto inum = 1;
+
+    if (path.empty())
+    {
+        return inum;
+    }
+
+    auto cur = fs.get_inode(1); // start at root
+    path = path.substr(1, path.size());
+
+    while (!path.empty())
+    {
+        if (cur->get_type() != fs::inode_type::directory)
+        {
+            return 0;
+        }
+
+        auto next = path.find('/');
+        auto curdir = fs::directory(cur);
+        auto it = curdir.find(path.substr(0, next));
+        if (it == curdir.end())
+        {
+            return 0;
+        }
+
+        inum = it.get_inumber();
+        if (next == path.npos)
+        {
+            break;
+        }
+        cur = fs.get_inode(it.get_inumber());
+        path = path.substr(next + 1, path.size());
+    }
+
+    return inum;
+}
 
 }
 

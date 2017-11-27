@@ -7,6 +7,7 @@
 #include <memory>
 #include <boost/intrusive_ptr.hpp>
 #include <fs270/config.hpp>
+#include <atomic>
 
 namespace fs
 {
@@ -48,11 +49,32 @@ public:
      */
     void flush();
 
+    block()
+        : m_id(0),
+          m_cache(nullptr),
+          m_writeback(false),
+          m_refcnt(0),
+          m_data(nullptr)
+    {
+
+    }
+    block(block&& rhs) :
+            m_id(rhs.m_id),
+            m_cache(rhs.m_cache),
+            m_writeback(rhs.m_writeback.load()),
+            m_refcnt(0),
+            m_data(std::move(rhs.m_data))
+    {
+        if (rhs.m_refcnt != 0)
+        {
+            throw std::runtime_error("bad move");
+        }
+    }
 private:
     config::sector_id_t m_id;
     block_cache* m_cache;
-    bool m_writeback;
-    int8_t m_refcnt;
+    std::atomic<bool> m_writeback;
+    std::atomic<int8_t> m_refcnt;
     std::unique_ptr<uint8_t[]> m_data;
 
     friend class block_cache;

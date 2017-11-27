@@ -7,6 +7,7 @@
 #include <fs270/bitmap_allocator.hpp>
 #include <cmath>
 #include <cstring>
+#include <fs270/fsexcept.hpp>
 
 namespace fs {
     void inode::update_mod_time() {
@@ -101,7 +102,11 @@ namespace fs {
         return read_res;
     }
 
-    void inode::write(uint32_t from, const void *buf, int32_t len) {
+    void inode::write(uint64_t from, const void *buf, int32_t len) {
+        if (from / m_fs->blk_cache()->device()->get_block_size() == 8198)
+        {
+            int x = 0;
+        }
         if (from + len > size())
         {
             truncate(from + len);
@@ -120,17 +125,23 @@ namespace fs {
         while (len > 0) {
             auto blk_id = offset / dev->get_block_size();
             auto blk_offset = offset % dev->get_block_size();
-
-            auto blk = cache->load(m_blocks.get_actual_block(blk_id));
-            auto blk_buf = blk->data<char>();
-
             auto copy_bytes = std::min<int32_t>(len, int32_t(dev->get_block_size()) - blk_offset);
+
+            auto a_blk_id = m_blocks.get_actual_block(blk_id);
+            if (a_blk_id == config::nullsect)
+            {
+                a_blk_id = m_blocks.get_actual_block(blk_id);
+                throw null_block_exception{};
+            }
+            auto blk = cache->load(a_blk_id, copy_bytes == dev->get_block_size());
+            auto blk_buf = blk->data<char>();
 
             std::copy(buffer, buffer + copy_bytes, blk_buf + blk_offset);
             buffer += copy_bytes;
             offset += copy_bytes;
             len -= copy_bytes;
         }
+        update_mod_time();
     }
 
     void inode::truncate(int32_t new_size) {
@@ -145,6 +156,12 @@ namespace fs {
                 m_fs->allocator()->free(m_blocks.get_actual_block(i - 1), 1);
                 m_blocks.pop_block();
             }
+
+            config::sector_id_t free;
+            while ((free = m_blocks.pop_indirect_block()) != config::nullsect)
+            {
+                m_fs->allocator()->free(free, 1);
+            }
         }
         else if (new_size > m_data.file_size)
         {
@@ -155,24 +172,42 @@ namespace fs {
             auto diff = needed_blk_count - m_blocks.get_block_count();
             while (m_blocks.get_pushable_count() < diff)
             {
-                m_blocks.alloc_indirect_block(m_fs->allocator()->alloc(1));
+                auto blk = m_fs->allocator()->alloc(1);
+                if (blk == config::nullsect)
+                {
+                    throw out_of_space_error{};
+                }
+                m_blocks.push_indirect_block(blk);
             }
 
             for (int i = m_blocks.get_block_count(); i < needed_blk_count; ++i)
             {
-                m_blocks.push_block(m_fs->allocator()->alloc(1));
+                auto blk = m_fs->allocator()->alloc(1);
+                if (blk == config::nullsect)
+                {
+                    throw out_of_space_error{};
+                }
+                m_blocks.push_block(blk);
             }
         }
+        if (m_blocks.get_block_count() * m_fs->blk_cache()->device()->get_block_size() < size())
+        {
+            throw std::runtime_error("truncate fail");
+        }
+        update_mod_time();
     }
 
-    inode::inode(fs_instance *inst) : m_fs(inst), m_blocks(fs::create_cont_file(inst->blk_cache()->device())) {
-        m_data.file_size = 0;
-        set_times(clock::now(), clock::now(), clock::now());
-        m_data.ref_cnt = 0;
+    inode::inode(fs_instance *inst) : m_fs(inst), m_blocks(fs::create_cont_file(inst->blk_cache())) {
     }
 
     inode inode::create(fs_instance &fs) {
-        return inode(&fs);
+        auto in = inode(&fs);
+        std::memset(&in.m_data, 0, sizeof in.m_data);
+        in.m_data.file_size = 0;
+        in.set_times(clock::now(), clock::now(), clock::now());
+        in.m_data.ref_cnt = 0;
+        in.set_mode(0644);
+        return in;
     }
 
     config::address_t inode::get_physical_address(uint32_t ioptr) const
@@ -182,7 +217,7 @@ namespace fs {
         auto offset = ioptr % blk_sz;
 
         auto physical_blk_id = m_blocks.get_actual_block(blk_id);
-        auto address = physical_blk_id * blk_sz + offset;
+        auto address = config::address_t(physical_blk_id) * blk_sz + offset;
         return address;
     }
 
@@ -216,22 +251,28 @@ namespace fs {
 
     void inode::write(config::address_t at, const inode &inode) {
         auto cache = inode.m_fs->blk_cache();
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         write_raw(cache, at, inode.m_data);
-        fs::write_cont_file(cache->device(), at + sizeof inode.m_data, inode.m_blocks);
+        fs::write_cont_file(cache, at + sizeof inode.m_data, inode.m_blocks);
     }
 
     inode inode::read(fs_instance &fs, config::address_t at) {
         auto cache = fs.blk_cache();
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         inode in(&fs);
         read_raw(cache, at, in.m_data);
-        in.m_blocks = read_cont_file(cache->device(), at + sizeof in.m_data);
+        in.m_blocks = read_cont_file(cache, at + sizeof in.m_data);
         return in;
     }
 
     void ::fs::detail::create_raw(block_cache *cache, config::address_t at) {
         inode_data data {};
         std::memset(&data, 0, sizeof data);
+        auto blk_id = at / cache->device()->get_block_size();
+        auto blk = cache->load(blk_id);
         write_raw(cache, at, data);
-        fs::write_cont_file(cache->device(), at + sizeof data, fs::create_cont_file(cache->device()));
+        fs::write_cont_file(cache, at + sizeof data, fs::create_cont_file(cache));
     }
 }

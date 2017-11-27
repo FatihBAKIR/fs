@@ -8,7 +8,10 @@
 #include <fs270/config.hpp>
 #include <memory>
 #include <fs270/block.hpp>
-#include <set>
+#include <tbb/task_group.h>
+#include <future>
+#include <vector>
+#include <boost/optional.hpp>
 
 namespace fs
 {
@@ -20,9 +23,12 @@ public:
      * a pointer to the block object.
      * If the object is already in the cache, it's not loaded again
      * @param id id of the sector
+     * @param zero_sector whether it's a new sector that's never been written
      * @return pointer to the block
      */
-    block_ptr load(config::sector_id_t id);
+    block_ptr load(config::sector_id_t id, bool zero_sector = false);
+
+    std::future<block_ptr> load_async(config::sector_id_t id, bool zero = false);
 
     /**
      * Gets the underlying device
@@ -41,9 +47,13 @@ public:
      * Flushes everything in the cache
      */
     void sync();
+
 private:
     config::block_dev_type* m_device;
     std::map<config::sector_id_t, block> m_cache;
+    std::vector<boost::optional<std::promise<block_ptr>>> m_proms;
+
+    tbb::task_group m_tg;
 
     block_cache(config::block_dev_type& device) : m_device(&device) {}
 

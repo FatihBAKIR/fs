@@ -34,7 +34,9 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
         superblock sb;
         sb.block_size = blk_size;
         sb.total_blocks = total_blocks;
-        sb.ilist_address = sizeof(superblock) + 128 + blk_size;
+        sb.ilist_address = 128;
+
+        sb.ilist_address += blk_size;
 
         config::sector_id_t allocator = 1;
 
@@ -75,6 +77,9 @@ fs_instance make_fs(std::unique_ptr<config::block_dev_type> dev, const fs_parame
 
     auto root_dir = fs.create_inode();
     assert(root_dir == 1);
+    auto root_in = fs.get_inode(root_dir);
+    root_in->set_type(inode_type::directory);
+    root_in->set_mode(0755);
 
     return fs;
 }

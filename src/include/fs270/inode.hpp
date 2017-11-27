@@ -10,8 +10,9 @@
 
 namespace fs
 {
-enum class inode_flags: uint8_t
+enum class inode_type: uint8_t
 {
+    regular = 0,
     directory = 1,
     symlink = 2
 };
@@ -19,20 +20,23 @@ enum class inode_flags: uint8_t
 /**
  * inode only data that's read and written from/to the disk
  */
-struct inode_data
+struct alignas(64) inode_data
 {
+    int32_t free_marker = 0;
     int32_t file_size;
     uint8_t ref_cnt;
-    inode_flags flags;
+    inode_type type;
     uint16_t permissions;
     int32_t owner;
     int32_t group;
     time_t mod_time;
     time_t creat_time;
     time_t access_time;
+    char __pad__[16];
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
+static_assert(sizeof(inode_data) == 64, "Inode data size is incorrect!");
 
 class fs_instance;
 
@@ -42,6 +46,12 @@ class fs_instance;
 class inode
 {
 public:
+    void set_type(inode_type type)
+    { m_data.type = type; }
+
+    inode_type get_type() const
+    { return m_data.type; }
+
     /**
      * Size of the file in bytes
      * @return size of the file
@@ -100,8 +110,11 @@ public:
      */
     int32_t get_group() const;
 
-    void chmod(uint16_t per)
+    void set_mode(uint16_t per)
     { m_data.permissions = per; }
+
+    uint16_t get_mode() const
+    { return m_data.permissions; }
 
     /**
      * Sets the size for the file of this inode
@@ -125,7 +138,7 @@ public:
      * @param buf buffer to copy from
      * @param len length of the buffer
      */
-    void write(uint32_t from, const void *buf, int32_t len);
+    void write(uint64_t from, const void *buf, int32_t len);
 
     using clock = std::chrono::system_clock;
 
@@ -179,6 +192,14 @@ public:
     fs_instance& get_fs() const {
         return *m_fs;
     }
+
+    /**
+     * Sets the times of this inode
+     * @param create creation time
+     * @param mod modification time
+     * @param access access time
+     */
+    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
 private:
     inode_data m_data;
     cont_file m_blocks;
@@ -195,23 +216,19 @@ private:
      */
     void update_access_time();
 
-    /**
-     * Sets the times of this inode
-     * @param create creation time
-     * @param mod modification time
-     * @param access access time
-     */
-    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
-
     friend void intrusive_ptr_add_ref(const inode* n);
     friend void intrusive_ptr_release(const inode* n);
 
 public:
 
+    int get_mem_refcnt() const
+    {
+        return m_refcnt;
+    }
     explicit inode(fs_instance* inst);
 };
 
-    inline constexpr auto inode_size = 128; //sizeof(inode_data) + sizeof(detail::contiguous_data);
+    inline constexpr auto inode_size = sizeof(inode_data) + sizeof(detail::contiguous_data);
 
     namespace detail
     {

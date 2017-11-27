@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv)
 {
-    auto blk_dev = std::make_unique<fs::config::block_dev_type>("/tmp/fs", 10LL * 1024 * 1024 * 1024, 4096);
+    auto blk_dev = std::make_unique<fs::config::block_dev_type>("/dev/sdb", 10LL * 1024 * 1024 * 1024, 4096);
     auto fs = fs::make_fs(std::move(blk_dev), {});
 
     std::cout << "free blocks: " << fs.allocator()->get_num_free_blocks() << '\n';
@@ -19,4 +19,10 @@ int main(int argc, char** argv)
     auto wm = "Welcome to your file system";
     hello_f->write(0, wm, strlen(wm) + 1);
     std::cout << "free blocks: " << fs.allocator()->get_num_free_blocks() << '\n';
+
+    auto inner_dir = fs.create_inode();
+    root_dir.add_entry("opt", inner_dir);
+    auto inner_in = fs.get_inode(inner_dir);
+    inner_in->set_type(fs::inode_type::directory);
+    inner_in->set_mode(0755);
 }

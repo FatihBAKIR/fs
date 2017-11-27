@@ -60,6 +60,8 @@ namespace fs
          */
         static fs_instance load(std::unique_ptr<config::block_dev_type> dev);
 
+        static std::unique_ptr<fs_instance> load_heap(std::unique_ptr<config::block_dev_type> dev);
+
         int get_total_blocks() const
         {
             return m_superblk.total_blocks;

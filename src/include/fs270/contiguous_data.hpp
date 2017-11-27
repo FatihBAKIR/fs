@@ -8,6 +8,7 @@
 #include <vector>
 #include <fs270/config.hpp>
 #include "block_cache.hpp"
+#include <boost/container/static_vector.hpp>
 
 namespace fs
 {
@@ -18,10 +19,11 @@ namespace detail
  * Basically stores the current block count and
  * the block pointers, nothing fancy
  */
-struct contiguous_data
+struct alignas(64) contiguous_data
 {
     int32_t block_count;
     int32_t pushable_count;
+    int16_t indirect_count;
     std::array<config::block_dev_type::sector_id_t, config::direct_pointers>
         direct_blocks;
     std::array<config::block_dev_type::sector_id_t, config::first_indirects>
@@ -30,11 +32,14 @@ struct contiguous_data
         second_indirect_blocks;
     std::array<config::block_dev_type::sector_id_t, config::third_indirects>
         third_indirect_blocks;
+    char pad[8];
 };
 
 static_assert(std::is_trivially_copyable<contiguous_data>{}, "Must be trivally copyable");
+static_assert(sizeof(contiguous_data) == 64, "Contiguous data size is incorrect!");
 
-std::vector<config::sector_id_t> calc_path(config::sector_id_t, const contiguous_data&, uint16_t blksize);
+boost::container::static_vector<config::sector_id_t, 3>
+calc_path(config::sector_id_t, const contiguous_data&, uint16_t blksize);
 }
 
 /**
@@ -78,7 +83,15 @@ public:
      * Contiguous file uses the given block as an indirect block
      * @param id block for the indirect block
      */
-    void alloc_indirect_block(config::block_dev_type::sector_id_t id);
+    void push_indirect_block(config::block_dev_type::sector_id_t id);
+
+    /**
+     * Removes an unused indirect block
+     * @return id of the indirect block, nullsect if none available
+     */
+    config::sector_id_t pop_indirect_block();
+
+    int get_indirect_count() const;
 
     /**
      * Pops the last sector id from the list
@@ -96,15 +109,16 @@ private:
     detail::contiguous_data m_data;
     block_cache* m_cache;
 
-    cont_file(const detail::contiguous_data& data, config::block_dev_type* dev)
-        : m_data(data), m_cache(get_cache(*dev)) {};
+    cont_file(const detail::contiguous_data& data, block_cache* cache)
+        : m_data(data), m_cache(cache) {};
 
-    friend cont_file read_cont_file(config::block_dev_type *device, config::address_t addr);
-    friend void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &);
+    friend cont_file read_cont_file(block_cache* device, config::address_t addr);
+    friend void write_cont_file(block_cache* device, config::address_t addr, const cont_file &);
 
-    friend cont_file create_cont_file(config::block_dev_type *device);
+    friend cont_file create_cont_file(block_cache* device);
 
-    std::vector<config::sector_id_t> calc_path(virtual_block_id) const;
+    boost::container::static_vector<config::sector_id_t, 3>
+    calc_path(virtual_block_id) const;
 };
 
 /**
@@ -113,20 +127,20 @@ private:
  * @param addr Address of the data
  * @return Contiguous file object
  */
-cont_file read_cont_file(config::block_dev_type *device, config::address_t addr);
+cont_file read_cont_file(block_cache* device, config::address_t addr);
 
 /**
  * Writes the given contiguous file object to the given device at the given address
  * @param device Device to write to
  * @param addr Address to write the object to
  */
-void write_cont_file(config::block_dev_type *device, config::address_t addr, const cont_file &);
+void write_cont_file(block_cache* device, config::address_t addr, const cont_file &);
 
 /**
  * Creates an empty contiguous file object in memory
  * @param device Device the file will belong to
  * @return Newly created contiguous file
  */
-cont_file create_cont_file(config::block_dev_type *device);
+cont_file create_cont_file(block_cache* device);
 }
 
