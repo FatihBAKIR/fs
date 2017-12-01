@@ -60,10 +60,10 @@ namespace fs
             throw std::runtime_error("can't seek device!");
         }
 
-        char buf[4096];
+        char buf[4096 * 2];
         std::fill(std::begin(buf), std::end(buf), 0);
 
-        if(::write(fd, buf, 4096) < 0){
+        if(::write(fd, buf, block_size) < 0){
             close(fd);
             throw std::runtime_error("can't write device!");
         }

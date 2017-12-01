@@ -4,6 +4,7 @@
 
 #include <catch.hpp>
 #include <fs270/disk_block_dev.hpp>
+#include <algorithm>
 #include <array>
 
 #define BLOCK_SIZE 10 * 1024 * 1024

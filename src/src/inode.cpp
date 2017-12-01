@@ -144,7 +144,7 @@ namespace fs {
         update_mod_time();
     }
 
-    void inode::truncate(int32_t new_size) {
+    void inode::truncate(int64_t new_size) {
         if (new_size < m_data.file_size) {
             m_data.file_size = new_size;
 
@@ -190,7 +190,7 @@ namespace fs {
                 m_blocks.push_block(blk);
             }
         }
-        if (m_blocks.get_block_count() * m_fs->blk_cache()->device()->get_block_size() < size())
+        if (m_blocks.get_capacity() < size())
         {
             throw std::runtime_error("truncate fail");
         }

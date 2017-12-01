@@ -23,7 +23,7 @@ enum class inode_type: uint8_t
 struct alignas(64) inode_data
 {
     int32_t free_marker = 0;
-    int32_t file_size;
+    int64_t file_size;
     uint8_t ref_cnt;
     inode_type type;
     uint16_t permissions;
@@ -32,7 +32,7 @@ struct alignas(64) inode_data
     time_t mod_time;
     time_t creat_time;
     time_t access_time;
-    char __pad__[16];
+    char __pad__[8];
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
@@ -56,7 +56,7 @@ public:
      * Size of the file in bytes
      * @return size of the file
      */
-    int32_t size() const
+    int64_t size() const
     { return m_data.file_size; }
 
     /**
@@ -64,7 +64,7 @@ public:
      * Until this capacity is exhausted, no new block allocations are required
      * @return The capacity of the underlying blocks in total bytes
      */
-    int32_t capacity() const
+    int64_t capacity() const
     { return m_blocks.get_capacity(); };
 
     /**
@@ -121,7 +121,7 @@ public:
      * If the size is greater than the current size, the gap will be zero filled
      * @param new_size size to set
      */
-    void truncate(int32_t new_size);
+    void truncate(int64_t new_size);
 
     /**
      * Reads `len` bytes starting at `from` to the buffer pointed by `buf`

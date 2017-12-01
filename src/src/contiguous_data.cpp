@@ -267,9 +267,9 @@ namespace fs {
         ++m_data.pushable_count;
     }
 
-    int32_t cont_file::get_capacity() const
+    int64_t cont_file::get_capacity() const
     {
-        return m_data.block_count*m_cache->device()->get_block_size();
+        return int64_t(m_data.block_count)*m_cache->device()->get_block_size();
     }
 
     int32_t cont_file::get_pushable_count() const
