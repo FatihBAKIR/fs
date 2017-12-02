@@ -30,8 +30,8 @@ struct alignas(64) inode_data
     int32_t owner;
     int32_t group;
     time_t mod_time;
-    time_t creat_time;
-    time_t access_time;
+    time_t chg_time;
+    mutable time_t access_time;
     char __pad__[8];
 };
 
@@ -78,13 +78,19 @@ public:
      * Increment the number of directory entries pointing to this inode
      */
     void increment_hardlinks()
-    { m_data.ref_cnt++; }
+    {
+        update_chg_time();
+        m_data.ref_cnt++;
+    }
 
     /**
      * Decrement the number of directory entries pointing to this inode
      */
     void decrement_hardlinks()
-    { m_data.ref_cnt--; }
+    {
+        update_chg_time();
+        m_data.ref_cnt--;
+    }
 
     /**
      * Sets the owner user id of this file
@@ -111,7 +117,10 @@ public:
     int32_t get_group() const;
 
     void set_mode(uint16_t per)
-    { m_data.permissions = per; }
+    {
+        update_chg_time();
+        m_data.permissions = per;
+    }
 
     uint16_t get_mode() const
     { return m_data.permissions; }
@@ -149,10 +158,10 @@ public:
     clock::time_point get_modification_time() const;
 
     /**
-     * Returns the time of the creation of the file related with this inode
+     * Returns the time of the change of the file related with this inode
      * @return creation time
      */
-    clock::time_point get_creation_time() const;
+    clock::time_point get_change_time() const;
 
     /**
      * Returns the time of the latest access to the file related with this inode
@@ -199,7 +208,7 @@ public:
      * @param mod modification time
      * @param access access time
      */
-    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
+    void set_times(clock::time_point change, clock::time_point mod, clock::time_point access);
 private:
     inode_data m_data;
     cont_file m_blocks;
@@ -212,9 +221,15 @@ private:
     void update_mod_time();
 
     /**
+     * Sets the latest change time of this inode to the current time
+     * @return
+     */
+    void update_chg_time();
+
+    /**
      * Sets the access time of this inode to the current time
      */
-    void update_access_time();
+    void update_access_time() const;
 
     friend void intrusive_ptr_add_ref(const inode* n);
     friend void intrusive_ptr_release(const inode* n);

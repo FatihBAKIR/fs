@@ -16,14 +16,20 @@ namespace fs {
         m_data.mod_time = u_time;
     }
 
-    void inode::update_access_time() {
+    void inode::update_chg_time() {
+        auto time = std::chrono::system_clock::now();
+        auto u_time = std::chrono::system_clock::to_time_t(time);
+        m_data.chg_time = u_time;
+    }
+
+    void inode::update_access_time() const {
         auto time = std::chrono::system_clock::now();
         auto u_time = std::chrono::system_clock::to_time_t(time);
         m_data.access_time = u_time;
     }
 
-    void inode::set_times(clock::time_point create, clock::time_point mod, clock::time_point access) {
-        m_data.creat_time = clock::to_time_t(create);
+    void inode::set_times(clock::time_point change, clock::time_point mod, clock::time_point access) {
+        m_data.chg_time = clock::to_time_t(change);
         m_data.mod_time = clock::to_time_t(mod);
         m_data.access_time = clock::to_time_t(access);
     }
@@ -32,8 +38,8 @@ namespace fs {
         return clock::from_time_t(m_data.mod_time);
     }
 
-    auto inode::get_creation_time() const -> clock::time_point {
-        return clock::from_time_t(m_data.creat_time);
+    auto inode::get_change_time() const -> clock::time_point {
+        return clock::from_time_t(m_data.chg_time);
     }
 
     auto inode::get_access_time() const -> clock::time_point {
@@ -41,6 +47,7 @@ namespace fs {
     }
 
     void inode::set_owner(int32_t user_id) {
+        update_chg_time();
         m_data.owner = user_id;
     }
 
@@ -49,6 +56,7 @@ namespace fs {
     }
 
     void inode::set_group(int32_t group_id) {
+        update_chg_time();
         m_data.group = group_id;
     }
 
@@ -99,6 +107,7 @@ namespace fs {
             len -= copy_bytes;
         }
 
+        update_access_time();
         return read_res;
     }
 
@@ -198,6 +207,7 @@ namespace fs {
         {
             throw integrity_error("truncate fail");
         }
+        update_chg_time();
         update_mod_time();
     }
 

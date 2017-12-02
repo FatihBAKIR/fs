@@ -116,7 +116,7 @@ void fill_stats(fs::inode_ptr inode, struct stat *stbuf, int32_t inum) {
 #if BOOST_OS_LINUX
     stbuf->st_atim = to_tspec(inode->get_access_time());
     stbuf->st_mtim = to_tspec(inode->get_modification_time());
-    stbuf->st_ctim = to_tspec(inode->get_creation_time());
+    stbuf->st_ctim = to_tspec(inode->get_change_time());
 #elif BOOST_OS_MACOS
     stbuf->st_atimespec = to_tspec(inode->get_access_time());
     stbuf->st_mtimespec = to_tspec(inode->get_modification_time());
@@ -360,7 +360,7 @@ int fs_settimes(const char *p, const timespec *ts) try {
     }
 
     fs::inode_ptr inode = priv->fs->get_inode(inum);
-    inode->set_times(inode->get_creation_time(), from_tspec(ts[1]), from_tspec(ts[0]));
+    inode->set_times(inode->get_change_time(), from_tspec(ts[1]), from_tspec(ts[0]));
 
     return 0;
 } catch (fs::not_a_directory &) {
