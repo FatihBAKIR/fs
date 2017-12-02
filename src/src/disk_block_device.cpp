@@ -9,7 +9,7 @@
 
 namespace fs
 {
-    int disk_block_dev::write(disk_block_dev::sector_id_t id, const void *data)
+    int disk_block_dev::write(disk_block_dev::sector_id_t id, const void *data) noexcept
     {
         auto ptr = reinterpret_cast<const char *>(data);
 
@@ -26,7 +26,7 @@ namespace fs
         return 0;
     }
 
-    int disk_block_dev::read(disk_block_dev::sector_id_t id, void *data)
+    int disk_block_dev::read(disk_block_dev::sector_id_t id, void *data) noexcept
     {
         auto ptr = reinterpret_cast< char *>(data);
 
@@ -69,12 +69,12 @@ namespace fs
         }
     }
 
-    uint64_t disk_block_dev::get_block_offset(disk_block_dev::sector_id_t sector)
+    uint64_t disk_block_dev::get_block_offset(disk_block_dev::sector_id_t sector) noexcept
     {
         return uint64_t (sector) * m_blk_size;
     }
 
-    uint16_t disk_block_dev::get_block_size() const
+    uint16_t disk_block_dev::get_block_size() const noexcept
     {
         return m_blk_size;
     }

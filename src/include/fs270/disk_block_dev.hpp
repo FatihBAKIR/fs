@@ -15,12 +15,12 @@ namespace fs
     public:
         using sector_id_t = int;
 
-        int write(sector_id_t id, const void *data);
+        int write(sector_id_t id, const void *data) noexcept;
 
-        int read(sector_id_t id, void *data);
+        int read(sector_id_t id, void *data) noexcept;
 
-        uint16_t get_block_size() const;
-        size_t capacity() const
+        uint16_t get_block_size() const noexcept;
+        size_t capacity() const noexcept
         { return m_capacity; }
 
         disk_block_dev(const std::string &path, size_t size, uint16_t block_size);
@@ -31,6 +31,6 @@ namespace fs
         int fd;
         uint16_t m_blk_size;
 
-        uint64_t get_block_offset(sector_id_t sector);
+        uint64_t get_block_offset(sector_id_t sector) noexcept;
     };
 }

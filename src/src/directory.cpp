@@ -9,10 +9,19 @@
 namespace fs
 {
     void directory::add_entry(boost::string_view name, int inumber) {
+        if (name.size() > 255)
+        {
+            throw name_too_long{};
+        }
+
         uint8_t name_len = name.size();
-        m_inode->write(m_inode->size(), &name_len, sizeof name_len);
-        m_inode->write(m_inode->size(), name.data(), name_len);
-        m_inode->write(m_inode->size(), &inumber, sizeof inumber);
+
+        auto sz = sizeof name_len + name_len + sizeof inumber;
+        char buf[255 + sizeof name_len + sizeof inumber];
+        memcpy(buf, &name_len, sizeof name_len);
+        memcpy(buf + sizeof name_len, name.data(), name_len);
+        memcpy(buf + sizeof name_len + name_len, &inumber, sizeof inumber);
+        m_inode->write(m_inode->size(), buf, sz);
 
         m_inode->get_fs().get_inode(inumber)->increment_hardlinks();
     }
@@ -70,6 +79,10 @@ namespace fs
         return fname;
     }
     dir_iterator directory::find(boost::string_view name) const {
+        if (name.size() > 255)
+        {
+            throw name_too_long{};
+        }
         return dir_iterator(m_inode.get(), find(name, true));
     }
 
@@ -140,7 +153,7 @@ namespace fs
             : m_inode(std::move(ptr)) {
         if (m_inode->get_type() != inode_type::directory)
         {
-            throw inode_type_error{};
+            throw not_a_directory{};
         }
     }
 }
