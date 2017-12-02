@@ -37,23 +37,20 @@ timespec to_tspec(std::chrono::system_clock::time_point tp) {
     return ts;
 }
 
-auto from_tspec(const timespec& ts)
-{
+auto from_tspec(const timespec &ts) {
     std::chrono::system_clock::time_point tp;
     tp += std::chrono::seconds(ts.tv_sec);
     //tp += std::chrono::nanoseconds(ts.tv_nsec);
     return tp;
 }
 
-boost::string_view get_name(boost::string_view v)
-{
+boost::string_view get_name(boost::string_view v) {
     auto last = v.rfind('/');
     auto name = v.substr(last + 1, v.size());
     return name;
 }
 
-int parent_dir(fs::fs_instance& fs, const char* p)
-{
+int parent_dir(fs::fs_instance &fs, const char *p) {
     auto v = boost::string_view(p);
     auto last = v.rfind('/');
     auto to_find = v.substr(0, last);
@@ -63,39 +60,40 @@ int parent_dir(fs::fs_instance& fs, const char* p)
     return dir_inum;
 }
 
-int create_inode(fs::fs_instance& fs, const char* p)
-{
+int create_inode(fs::fs_instance &fs, const char *p) {
     auto v = boost::string_view(p);
     auto last = v.rfind('/');
     auto to_find = v.substr(0, last);
     auto name = v.substr(last + 1, v.size());
 
-    if (name.size() > 255)
-    {
+    if (name.size() > 255) {
         return -ENAMETOOLONG;
     }
 
     auto dir_inum = fs::lookup(fs, to_find);
-    if (dir_inum == 0)
-    {
+    if (dir_inum == 0) {
         return -ENOENT;
     }
 
     auto dir = fs::directory(fs.get_inode(dir_inum));
 
-    if (dir.find(name) != dir.end())
-    {
+    if (dir.find(name) != dir.end()) {
         return -EEXIST;
     }
 
     auto inum = fs.create_inode();
-    dir.add_entry(name, inum);
+    try {
+        dir.add_entry(name, inum);
+    }
+    catch (fs::fs_error &) {
+        fs.remove_inode(inum);
+        throw;
+    }
 
     return inum;
 }
 
-void fill_stats(fs::inode_ptr inode, struct stat* stbuf, int32_t inum)
-{
+void fill_stats(fs::inode_ptr inode, struct stat *stbuf, int32_t inum) {
     auto priv = get_private();
     memset(stbuf, 0, sizeof *stbuf);
     stbuf->st_mode = inode->get_mode();
@@ -144,26 +142,25 @@ void *fs_init(struct fuse_conn_info *conn) {
     spdlog::set_async_mode(8192 * 4);
     priv->log =
             spdlog::stderr_color_st("fslog");
-            //std::make_shared<spdlog::logger>("null_log",std::make_shared<spdlog::sinks::null_sink_st>());
+    //std::make_shared<spdlog::logger>("null_log",std::make_shared<spdlog::sinks::null_sink_st>());
 
     priv->log->info("Initiated filesystem");
-    priv->log->info("Using \"{}\" as the block device", boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
+    priv->log->info("Using \"{}\" as the block device",
+                    boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
     priv->log->info("Fuse version: {}", fuse_version());
 
     return priv;
 }
 
-void fs_destroy(void* arg)
-{
+void fs_destroy(void *arg) {
     auto fsp = static_cast<fs_fuse_private *>(arg);
     delete fsp;
 }
 
-int fs_statfs(const char*, struct statvfs* stat)
-{
+int fs_statfs(const char *, struct statvfs *stat) {
     auto priv = get_private();
     priv->log->info("Statfs");
-    fs::fs_instance* inst = priv->fs.get();
+    fs::fs_instance *inst = priv->fs.get();
     stat->f_blocks = inst->get_total_blocks();
     stat->f_bsize = inst->blk_cache()->device()->get_block_size();
     stat->f_frsize = stat->f_bsize;
@@ -184,7 +181,7 @@ int fs_statfs(const char*, struct statvfs* stat)
     return 0;
 }
 
-int fs_open(const char *p, fuse_file_info *fi) {
+int fs_open(const char *p, fuse_file_info *fi) try {
     auto priv = get_private();
     priv->log->info("Opening {}", p);
 
@@ -198,6 +195,12 @@ int fs_open(const char *p, fuse_file_info *fi) {
 
     return 0;
 }
+catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+}
+catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+}
 
 int fs_read(const char *p, char *buf, size_t sz, off_t off, fuse_file_info *fi) {
     auto priv = get_private();
@@ -209,15 +212,21 @@ int fs_read(const char *p, char *buf, size_t sz, off_t off, fuse_file_info *fi) 
     return inode->read(off, buf, sz);
 }
 
-int fs_write(const char *p, const char *buf, size_t sz, off_t off, fuse_file_info *fi) {
+int fs_write(const char *p, const char *buf, size_t sz, off_t off, fuse_file_info *fi) try {
     auto priv = get_private();
     priv->log->info("Writing {}, {} bytes from {}", p, sz, off);
     fs::inode_ptr inode = priv->fs->get_inode(fi->fh);
     inode->write(off, buf, sz);
     return sz;
 }
+catch (fs::file_too_big_error &) {
+    return -EFBIG;
+}
+catch (fs::out_of_space_error &) {
+    return -ENOSPC;
+}
 
-int fs_chmod(const char *p, mode_t m) {
+int fs_chmod(const char *p, mode_t m) try {
     auto priv = get_private();
     priv->log->info("CHMOD {}, {:o}", p, m);
 
@@ -230,7 +239,14 @@ int fs_chmod(const char *p, mode_t m) {
     in->set_mode(m);
     return 0;
 }
-int fs_chown(const char *p, uid_t u, gid_t g) {
+catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+}
+catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+}
+
+int fs_chown(const char *p, uid_t u, gid_t g) try {
     auto priv = get_private();
     priv->log->info("CHOWN {}, {}, {}", p, u, g);
 
@@ -244,9 +260,14 @@ int fs_chown(const char *p, uid_t u, gid_t g) {
     in->set_group(g);
     return 0;
 }
+catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+}
+catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+}
 
-
-int fs_getattr(const char *path, struct stat *stbuf) {
+int fs_getattr(const char *path, struct stat *stbuf) try {
     auto priv = get_private();
     priv->log->info("Getattr {}", path);
 
@@ -261,6 +282,12 @@ int fs_getattr(const char *path, struct stat *stbuf) {
 
     return 0;
 }
+catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+}
+catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+}
 
 int fs_release(const char *, fuse_file_info *fi) {
     auto priv = get_private();
@@ -271,16 +298,14 @@ int fs_release(const char *, fuse_file_info *fi) {
 #if BOOST_OS_MACOS
 using access_mode_t = fd_mask;
 #elif BOOST_OS_LINUX
-using access_mode_t = int;
+using access_mode_t = int ;
 #endif
 
-int fs_access(const char* p, access_mode_t mode)
-{
+int fs_access(const char *p, access_mode_t mode) {
     return 0;
 }
 
-int fs_truncate(const char* p, off_t sz) try
-{
+int fs_truncate(const char *p, off_t sz) try {
     auto priv = get_private();
     priv->log->info("Truncate {}, {}", p, sz);
 
@@ -292,22 +317,22 @@ int fs_truncate(const char* p, off_t sz) try
     fs::inode_ptr in = priv->fs->get_inode(inum);
     in->truncate(sz);
     return 0;
-} catch (fs::out_of_space_error)
-{
+} catch (fs::out_of_space_error) {
     return -ENOSPC;
-} catch (fs::file_too_big_error)
-{
+} catch (fs::file_too_big_error) {
     return -EFBIG;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_create(const char* p, mode_t m, fuse_file_info* fi)
-{
+int fs_create(const char *p, mode_t m, fuse_file_info *fi) try {
     auto priv = get_private();
     priv->log->info("Create {}", p);
 
     auto inum = create_inode(*priv->fs, p);
-    if (inum < 0)
-    {
+    if (inum < 0) {
         return inum;
     }
 
@@ -317,10 +342,15 @@ int fs_create(const char* p, mode_t m, fuse_file_info* fi)
     inode->set_mode(m);
     fi->fh = inum;
     return 0;
+} catch (fs::out_of_space_error &) {
+    return -ENOSPC;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_settimes(const char* p, const timespec* ts)
-{
+int fs_settimes(const char *p, const timespec *ts) try {
     auto priv = get_private();
     priv->log->info("Update times {}, {}", p);
 
@@ -333,17 +363,23 @@ int fs_settimes(const char* p, const timespec* ts)
     inode->set_times(inode->get_creation_time(), from_tspec(ts[1]), from_tspec(ts[0]));
 
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_symlink(const char* target, const char* p)
-{
+int fs_symlink(const char *target, const char *p) try {
     auto priv = get_private();
     priv->log->info("Symlink \"{}\" -> \"{}\"", p, target);
 
     auto inum = create_inode(*priv->fs, p);
-    if (inum < 0)
-    {
+    if (inum < 0) {
         return inum;
+    }
+
+    if (strlen(target) > 4096) {
+        return -EFBIG;
     }
 
     fs::inode_ptr inode = priv->fs->get_inode(inum);
@@ -353,9 +389,15 @@ int fs_symlink(const char* target, const char* p)
     inode->write(0, target, strlen(target) + 1);
     return 0;
 }
+catch (fs::out_of_space_error &) {
+    return -ENOSPC;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+}
 
-int fs_readlink(const char* p, char* buf, size_t bufsz)
-{
+int fs_readlink(const char *p, char *buf, size_t bufsz) try {
     auto priv = get_private();
     priv->log->info("Readlink \"{}\" -> \"{}\"", p);
 
@@ -367,23 +409,24 @@ int fs_readlink(const char* p, char* buf, size_t bufsz)
     fs::inode_ptr in = priv->fs->get_inode(inum);
     auto len = in->read(0, buf, bufsz);
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_link(const char* to, const char* p)
-{
+int fs_link(const char *to, const char *p) try {
     auto priv = get_private();
     priv->log->info("Link \"{}\" -> \"{}\"", p, to);
 
     auto dir_inum = parent_dir(*priv->fs, p);
-    if (dir_inum < 0)
-    {
+    if (dir_inum <= 0) {
         return -ENOENT;
     }
 
     auto to_inum = fs::lookup(*priv->fs, to);
 
-    if (to_inum < 0)
-    {
+    if (to_inum <= 0) {
         return -ENOENT;
     }
 
@@ -394,17 +437,23 @@ int fs_link(const char* to, const char* p)
     dir.add_entry(name, to_inum);
 
     return 0;
+} catch (fs::out_of_space_error &) {
+    return -ENOSPC;
+} catch (fs::file_too_big_error &) {
+    return -EFBIG;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_unlink(const char* p)
-{
+int fs_unlink(const char *p) try {
     auto priv = get_private();
     priv->log->info("Unlink \"{}\"", p);
 
     auto parent_dirnum = parent_dir(*priv->fs, p);
 
-    if (parent_dirnum == 0)
-    {
+    if (parent_dirnum == 0) {
         return -ENOENT;
     }
 
@@ -414,8 +463,7 @@ int fs_unlink(const char* p)
     name = name.substr(name.rfind('/') + 1, name.size());
 
     auto it = parent_dir.find(name);
-    if (it == parent_dir.end())
-    {
+    if (it == parent_dir.end()) {
         return -ENOENT;
     }
 
@@ -424,8 +472,7 @@ int fs_unlink(const char* p)
 
     parent_dir.del_entry(name);
 
-    if (inode->get_hardlinks() == 0)
-    {
+    if (inode->get_hardlinks() == 0) {
         priv->log->info("Deleting \"{}\"", p);
         inode->truncate(0);
         inode.reset();
@@ -433,16 +480,16 @@ int fs_unlink(const char* p)
     }
 
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
 }
 
-int fs_rmdir(const char* p)
-{
+int fs_rmdir(const char *p) try {
     auto priv = get_private();
     priv->log->info("Rmdir \"{}\"", p);
 
     auto parent_dir_inum = parent_dir(*priv->fs, p);
-    if (parent_dir_inum == 0)
-    {
+    if (parent_dir_inum == 0) {
         return -ENOENT;
     }
 
@@ -452,8 +499,7 @@ int fs_rmdir(const char* p)
 
     auto it = parent_dir.find(name);
 
-    if (it == parent_dir.end())
-    {
+    if (it == parent_dir.end()) {
         return -ENOENT;
     }
 
@@ -463,18 +509,15 @@ int fs_rmdir(const char* p)
     {
         auto child_dir = fs::directory(child_inode);
 
-        if (child_dir.begin() != child_dir.end())
-        {
+        if (child_dir.begin() != child_dir.end()) {
             // folder is not empty
             return -EPERM;
         }
     }
 
-
     parent_dir.del_entry(name);
 
-    if (child_inode->get_hardlinks() == 0)
-    {
+    if (child_inode->get_hardlinks() == 0) {
         priv->log->info("Deleting \"{}\"", p);
         child_inode->truncate(0);
         child_inode.reset();
@@ -482,12 +525,14 @@ int fs_rmdir(const char* p)
     }
 
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
 }
 
-int fs_mkdir(const char* p, mode_t m) try {
+int fs_mkdir(const char *p, mode_t m) try {
 
     auto priv = get_private();
-    priv ->log->info("Mkdir \"{}\"",p);
+    priv->log->info("Mkdir \"{}\"", p);
 
     auto parent_dirnum = parent_dir(*priv->fs, p);
 
@@ -496,14 +541,21 @@ int fs_mkdir(const char* p, mode_t m) try {
     auto to_find = v.substr(0, last);
     auto name = v.substr(last + 1, v.size());
 
-    if (name.size() > 255)
-    {
+    if (name.size() > 255) {
         return -ENAMETOOLONG;
     }
 
     auto root_dir = fs::directory(priv->fs->get_inode(parent_dirnum));
     auto new_dir = priv->fs->create_inode();
-    root_dir.add_entry(name, new_dir);
+    try
+    {
+        root_dir.add_entry(name, new_dir);
+    }
+    catch (fs::fs_error&)
+    {
+        priv->fs->remove_inode(new_dir);
+        throw;
+    }
     auto new_in = priv->fs->get_inode(new_dir);
     new_in->set_type(fs::inode_type::directory);
     new_in->set_owner(fuse_get_context()->uid);
@@ -511,18 +563,20 @@ int fs_mkdir(const char* p, mode_t m) try {
     new_in->set_mode(m);
 
     return 0;
-} catch (fs::out_of_space_error)
-{
+} catch (fs::out_of_space_error) {
     return -ENOSPC;
-} catch (fs::file_too_big_error)
-{
+} catch (fs::file_too_big_error) {
     return -EFBIG;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* fi){
+int fs_readdir(const char *p, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) try {
 
     auto priv = get_private();
-    priv ->log->info("Readdir \"{}\"",p);
+    priv->log->info("Readdir \"{}\"", p);
 
     auto inum = fs::lookup(*priv->fs, p);
     auto dir = fs::directory(priv->fs->get_inode(inum));
@@ -530,27 +584,28 @@ int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, s
     filler(buf, ".", nullptr, 0);
     filler(buf, "..", nullptr, 0);
 
-    for (auto entry : dir)
-    {
-        struct stat s;
+    for (auto entry : dir) {
+        /*struct stat s;
         auto in = priv->fs->get_inode(entry.second);
-        fill_stats(in, &s, entry.second);
-        filler(buf, entry.first.c_str(), &s, 0);
+        fill_stats(in, &s, entry.second);*/
+        filler(buf, entry.first.c_str(), nullptr, 0);
     }
 
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
 }
 
-int fs_rename(const char* p, const char* to)
-{
+int fs_rename(const char *p, const char *to) try {
     auto priv = get_private();
-    priv ->log->info("Rename \"{}\" -> \"{}\"",p, to);
+    priv->log->info("Rename \"{}\" -> \"{}\"", p, to);
 
     auto old_parent = parent_dir(*priv->fs, p);
     auto new_parent = parent_dir(*priv->fs, to);
 
-    if (old_parent == 0 || new_parent == 0)
-    {
+    if (old_parent == 0 || new_parent == 0) {
         return -ENOENT;
     }
 
@@ -561,21 +616,18 @@ int fs_rename(const char* p, const char* to)
     auto new_dir = fs::directory(priv->fs->get_inode(new_parent));
 
     auto old_it = old_dir.find(old_name);
-    if (old_it == old_dir.end())
-    {
+    if (old_it == old_dir.end()) {
         return -ENOENT;
     }
 
     auto old_inum = old_it.get_inumber();
     auto new_it = new_dir.find(new_name);
 
-    if (new_it != new_dir.end())
-    {
+    if (new_it != new_dir.end()) {
         auto exist = new_it.get_inumber();
         auto exist_inode = priv->fs->get_inode(exist);
         new_dir.del_entry(new_name);
-        if (exist_inode->get_hardlinks() == 0)
-        {
+        if (exist_inode->get_hardlinks() == 0) {
             exist_inode->truncate(0);
             exist_inode.reset();
             priv->fs->remove_inode(exist);
@@ -588,14 +640,21 @@ int fs_rename(const char* p, const char* to)
 
     old_dir.del_entry(old_name);
 
-    if (old_inode->get_hardlinks() == 0)
-    {
+    if (old_inode->get_hardlinks() == 0) {
         old_inode->truncate(0);
         old_inode.reset();
         priv->fs->remove_inode(old_inum);
     }
 
     return 0;
+} catch (fs::not_a_directory &) {
+    return -ENOTDIR;
+} catch (fs::name_too_long &) {
+    return -ENAMETOOLONG;
+} catch (fs::out_of_space_error&) {
+    return -ENOSPC;
+} catch (fs::file_too_big_error&) {
+    return -EFBIG;
 }
 }
 
@@ -606,59 +665,59 @@ auto main(int argc, char **argv) -> int {
     fuse_operations *p_ops = ops.get();
 
     /* Filesystem */
-    p_ops->init     = fs_init;
-    p_ops->destroy  = fs_destroy;
-    p_ops->statfs   = fs_statfs;
+    p_ops->init = fs_init;
+    p_ops->destroy = fs_destroy;
+    p_ops->statfs = fs_statfs;
 
     /* Open/close  */
-    p_ops->open     = fs_open;
-    p_ops->release  = fs_release;
+    p_ops->open = fs_open;
+    p_ops->release = fs_release;
 
     /* Attibutes */
-    p_ops->getattr  = fs_getattr;
-    p_ops->utimens  = fs_settimes;
-    p_ops->chmod    = fs_chmod;
-    p_ops->chown    = fs_chown;
+    p_ops->getattr = fs_getattr;
+    p_ops->utimens = fs_settimes;
+    p_ops->chmod = fs_chmod;
+    p_ops->chown = fs_chown;
 
     /* Read/write */
-    p_ops->read     = fs_read;
-    p_ops->write    = fs_write;
+    p_ops->read = fs_read;
+    p_ops->write = fs_write;
 
     /* New file / rewriting a file */
-    p_ops->create   = fs_create;
+    p_ops->create = fs_create;
     p_ops->truncate = fs_truncate;
 
     /* Symlink stuff */
-    p_ops->symlink  = fs_symlink;
+    p_ops->symlink = fs_symlink;
     p_ops->readlink = fs_readlink;
 
     /* Directory stuff */
-    p_ops->mkdir    = fs_mkdir;
-    p_ops->opendir  = nullptr;
-    p_ops->readdir  = fs_readdir;
-    p_ops->rmdir    = fs_rmdir;
+    p_ops->mkdir = fs_mkdir;
+    p_ops->opendir = nullptr;
+    p_ops->readdir = fs_readdir;
+    p_ops->rmdir = fs_rmdir;
 
     /* Hardlink stuff */
-    p_ops->link     = fs_link;
-    p_ops->unlink   = fs_unlink;
+    p_ops->link = fs_link;
+    p_ops->unlink = fs_unlink;
 
     /* Misc file stuff */
-    p_ops->rename   = fs_rename;
-    p_ops->flush    = nullptr;
+    p_ops->rename = fs_rename;
+    p_ops->flush = nullptr;
 
     /* Don't know if we actually need these ones */
-    p_ops->access   = nullptr;
-    p_ops->fsync    = nullptr;
+    p_ops->access = nullptr;
+    p_ops->fsync = nullptr;
     p_ops->fsyncdir = nullptr;
-    p_ops->lock     = nullptr;
-    p_ops->bmap     = nullptr;
-    p_ops->mknod    = nullptr;
+    p_ops->lock = nullptr;
+    p_ops->bmap = nullptr;
+    p_ops->mknod = nullptr;
 #if BOOST_OS_LINUX
-    p_ops->ioctl    = nullptr;
-    p_ops->poll     = nullptr;
+    p_ops->ioctl = nullptr;
+    p_ops->poll = nullptr;
 #endif
 
-    std::set_terminate([]{
+    std::set_terminate([] {
         auto priv = get_private();
         priv->log->error("Exception thrown, trying to save everything and abort!");
         delete priv;

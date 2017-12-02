@@ -196,7 +196,7 @@ namespace fs {
         }
         if (m_blocks.get_capacity() < size())
         {
-            throw std::runtime_error("truncate fail");
+            throw integrity_error("truncate fail");
         }
         update_mod_time();
     }

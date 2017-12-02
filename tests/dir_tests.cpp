@@ -8,6 +8,7 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <fs270/fsexcept.hpp>
 #include "tests_common.hpp"
 
 TEST_CASE("dir test", "[fs][dir]")
@@ -165,4 +166,21 @@ TEST_CASE("dir lookup", "[fs][dir]")
     REQUIRE(in != nullptr);
     REQUIRE(in->size() == 16);
     REQUIRE(in->get_type() == fs::inode_type::regular);
+}
+
+TEST_CASE("dir errors", "[fs][dir]")
+{
+    auto dev = fs::tests::get_block_dev();
+    auto fs = fs::make_fs(std::move(dev), {});
+
+    auto dir_in = fs.get_inode(1);
+    dir_in->set_type(fs::inode_type::directory);
+    auto dir = fs::directory(dir_in);
+
+    std::string n;
+    for (int i = 0; i < 300; ++i)
+    {
+        n += 'x';
+    }
+    REQUIRE_THROWS_AS(dir.add_entry(n, fs.create_inode()), fs::name_too_long);
 }
