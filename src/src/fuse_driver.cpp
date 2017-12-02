@@ -94,7 +94,7 @@ int create_inode(fs::fs_instance& fs, const char* p)
     return inum;
 }
 
-void fill_stats(fs::inode_ptr inode, struct stat* stbuf)
+void fill_stats(fs::inode_ptr inode, struct stat* stbuf, int32_t inum)
 {
     auto priv = get_private();
     memset(stbuf, 0, sizeof *stbuf);
@@ -129,6 +129,7 @@ void fill_stats(fs::inode_ptr inode, struct stat* stbuf)
     stbuf->st_blocks = inode->capacity() / stbuf->st_blksize;
     stbuf->st_uid = inode->get_owner();
     stbuf->st_gid = inode->get_group();
+    stbuf->st_ino = inum;
 }
 
 
@@ -256,7 +257,7 @@ int fs_getattr(const char *path, struct stat *stbuf) {
 
     fs::inode_ptr inode = priv->fs->get_inode(inum);
 
-    fill_stats(inode, stbuf);
+    fill_stats(inode, stbuf, inum);
 
     return 0;
 }
@@ -533,7 +534,7 @@ int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, s
     {
         struct stat s;
         auto in = priv->fs->get_inode(entry.second);
-        fill_stats(in, &s);
+        fill_stats(in, &s, entry.second);
         filler(buf, entry.first.c_str(), &s, 0);
     }
 
