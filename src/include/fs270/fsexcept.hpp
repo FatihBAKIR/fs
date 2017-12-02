@@ -33,4 +33,6 @@ struct null_block_exception { };
 struct double_free {};
 
 struct inode_type_error {};
+
+    struct file_too_big_error {};
 }

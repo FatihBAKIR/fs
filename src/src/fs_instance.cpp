@@ -33,6 +33,10 @@ namespace fs {
         m_cache->sync();
     }
 
+    int64_t fs_instance::max_inode_size() const {
+        return m_max_size;
+    }
+
     fs_instance::fs_instance(std::unique_ptr<config::block_dev_type> dev) {
         auto total_size = dev->capacity();
         auto blk_size = dev->get_block_size();
@@ -66,6 +70,10 @@ namespace fs {
         m_cache = cache;
         m_device = std::move(dev);
         m_ilist = std::make_unique<inode>(inode::read(*this, match.ilist_address));
+
+        m_max_size = config::direct_pointers * blk_size +
+                     config::first_indirects * blk_size * (blk_size / sizeof(config::address_t)) +
+                     config::second_indirects * blk_size * (blk_size / sizeof(config::address_t)) * (blk_size / sizeof(config::address_t));
 
         // get the "next inode" and pointer to free list from iblock 0 of ilist
         // m_ilist.read(0, buf, fs::inode_size); // buf contains iblock 0

@@ -12,6 +12,7 @@
 #include <chrono>
 #include <boost/type_index.hpp>
 #include <spdlog/sinks/null_sink.h>
+#include <fs270/fsexcept.hpp>
 
 struct fs_fuse_private {
     std::unique_ptr<fs::fs_instance> fs;
@@ -68,6 +69,11 @@ int create_inode(fs::fs_instance& fs, const char* p)
     auto last = v.rfind('/');
     auto to_find = v.substr(0, last);
     auto name = v.substr(last + 1, v.size());
+
+    if (name.size() > 255)
+    {
+        return -ENAMETOOLONG;
+    }
 
     auto dir_inum = fs::lookup(fs, to_find);
     if (dir_inum == 0)
@@ -272,7 +278,7 @@ int fs_access(const char* p, access_mode_t mode)
     return 0;
 }
 
-int fs_truncate(const char* p, off_t sz)
+int fs_truncate(const char* p, off_t sz) try
 {
     auto priv = get_private();
     priv->log->info("Truncate {}, {}", p, sz);
@@ -285,6 +291,12 @@ int fs_truncate(const char* p, off_t sz)
     fs::inode_ptr in = priv->fs->get_inode(inum);
     in->truncate(sz);
     return 0;
+} catch (fs::out_of_space_error)
+{
+    return -ENOSPC;
+} catch (fs::file_too_big_error)
+{
+    return -EFBIG;
 }
 
 int fs_create(const char* p, mode_t m, fuse_file_info* fi)
@@ -471,7 +483,7 @@ int fs_rmdir(const char* p)
     return 0;
 }
 
-int fs_mkdir(const char* p, mode_t m){
+int fs_mkdir(const char* p, mode_t m) try {
 
     auto priv = get_private();
     priv ->log->info("Mkdir \"{}\"",p);
@@ -483,6 +495,11 @@ int fs_mkdir(const char* p, mode_t m){
     auto to_find = v.substr(0, last);
     auto name = v.substr(last + 1, v.size());
 
+    if (name.size() > 255)
+    {
+        return -ENAMETOOLONG;
+    }
+
     auto root_dir = fs::directory(priv->fs->get_inode(parent_dirnum));
     auto new_dir = priv->fs->create_inode();
     root_dir.add_entry(name, new_dir);
@@ -493,6 +510,12 @@ int fs_mkdir(const char* p, mode_t m){
     new_in->set_mode(m);
 
     return 0;
+} catch (fs::out_of_space_error)
+{
+    return -ENOSPC;
+} catch (fs::file_too_big_error)
+{
+    return -EFBIG;
 }
 
 int fs_readdir(const char* p, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* fi){

@@ -103,10 +103,7 @@ namespace fs {
     }
 
     void inode::write(uint64_t from, const void *buf, int32_t len) {
-        if (from / m_fs->blk_cache()->device()->get_block_size() == 8198)
-        {
-            int x = 0;
-        }
+
         if (from + len > size())
         {
             truncate(from + len);
@@ -165,6 +162,10 @@ namespace fs {
         }
         else if (new_size > m_data.file_size)
         {
+            if (new_size > m_fs->max_inode_size())
+            {
+                throw file_too_big_error{};
+            }
             m_data.file_size = new_size;
 
             auto needed_blk_count = int32_t(std::ceil(double(new_size) / m_fs->blk_cache()->device()->get_block_size()));
