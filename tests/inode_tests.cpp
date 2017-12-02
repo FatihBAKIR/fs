@@ -40,3 +40,18 @@ TEST_CASE("inode basics", "[fs][inode]")
 
     in = fs::inode::read(fs, 6000);
 }
+
+TEST_CASE("truncate", "[fs][inode]")
+{
+    auto blk_dev = fs::tests::get_block_dev();
+    auto fs = fs::make_fs(std::move(blk_dev), {});
+
+    auto in = fs::inode::create(fs);
+    in.truncate(1000);
+    char buf;
+    for (int i = 0; i < 1000; ++i)
+    {
+        in.read(i, &buf, 1);
+        REQUIRE(buf == 0);
+    }
+}

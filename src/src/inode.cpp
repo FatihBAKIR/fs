@@ -188,6 +188,9 @@ namespace fs {
                     throw out_of_space_error{};
                 }
                 m_blocks.push_block(blk);
+                auto b = m_fs->blk_cache()->load(blk, true);
+                auto buf = b->data<uint64_t>();
+                std::fill(buf, buf + (m_fs->blk_cache()->device()->get_block_size() / sizeof(uint64_t)), 0);
             }
         }
         if (m_blocks.get_capacity() < size())
