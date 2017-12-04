@@ -148,6 +148,7 @@ void *fs_init(struct fuse_conn_info *conn) {
     priv->log->info("Using \"{}\" as the block device",
                     boost::typeindex::type_id<fs::config::block_dev_type>().pretty_name());
     priv->log->info("Fuse version: {}", fuse_version());
+    priv->log->info("Max file size: {}", priv->fs->max_inode_size());
 
     return priv;
 }
