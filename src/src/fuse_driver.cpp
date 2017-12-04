@@ -239,6 +239,7 @@ int fs_chmod(const char *p, mode_t m) try {
     in->set_mode(m);
     return 0;
 }
+<<<<<<< Updated upstream
 catch (fs::not_a_directory &) {
     return -ENOTDIR;
 }
@@ -247,6 +248,10 @@ catch (fs::name_too_long &) {
 }
 
 int fs_chown(const char *p, uid_t u, gid_t g) try {
+=======
+
+int fs_chown(const char *p, uid_t u, gid_t g) {
+>>>>>>> Stashed changes
     auto priv = get_private();
     priv->log->info("CHOWN {}, {}, {}", p, u, g);
 
@@ -692,7 +697,6 @@ auto main(int argc, char **argv) -> int {
     p_ops->readlink = fs_readlink;
 
     /* Directory stuff */
-    p_ops->mkdir = fs_mkdir;
     p_ops->opendir = nullptr;
     p_ops->readdir = fs_readdir;
     p_ops->rmdir = fs_rmdir;
