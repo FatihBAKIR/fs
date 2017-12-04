@@ -72,8 +72,8 @@ namespace fs {
         m_ilist = std::make_unique<inode>(inode::read(*this, match.ilist_address));
 
         m_max_size = int64_t(config::direct_pointers) * blk_size +
-                     int64_t(config::first_indirects) * blk_size * (blk_size / sizeof(config::address_t)) +
-                     int64_t(config::second_indirects) * blk_size * (blk_size / sizeof(config::address_t)) * (blk_size / sizeof(config::address_t));
+                     int64_t(config::first_indirects) * blk_size * (blk_size / sizeof(config::sector_id_t)) +
+                     int64_t(config::second_indirects) * blk_size * (blk_size / sizeof(config::sector_id_t)) * (blk_size / sizeof(config::sector_id_t));
 
         // get the "next inode" and pointer to free list from iblock 0 of ilist
         // m_ilist.read(0, buf, fs::inode_size); // buf contains iblock 0
