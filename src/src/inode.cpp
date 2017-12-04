@@ -175,6 +175,7 @@ namespace fs {
             {
                 throw file_too_big_error{};
             }
+            auto cur_cap = m_data.file_size;
             m_data.file_size = new_size;
 
             auto needed_blk_count = int32_t(std::ceil(double(new_size) / m_fs->blk_cache()->device()->get_block_size()));
@@ -185,6 +186,7 @@ namespace fs {
                 auto blk = m_fs->allocator()->alloc(1);
                 if (blk == config::nullsect)
                 {
+                    m_data.file_size = cur_cap;
                     throw out_of_space_error{};
                 }
                 m_blocks.push_indirect_block(blk);
@@ -195,12 +197,14 @@ namespace fs {
                 auto blk = m_fs->allocator()->alloc(1);
                 if (blk == config::nullsect)
                 {
+                    m_data.file_size = cur_cap;
                     throw out_of_space_error{};
                 }
                 m_blocks.push_block(blk);
                 auto b = m_fs->blk_cache()->load(blk, true);
                 auto buf = b->data<uint64_t>();
                 std::fill(buf, buf + (m_fs->blk_cache()->device()->get_block_size() / sizeof(uint64_t)), 0);
+                cur_cap += m_fs->blk_cache()->device()->get_block_size();
             }
         }
         if (m_blocks.get_capacity() < size())
