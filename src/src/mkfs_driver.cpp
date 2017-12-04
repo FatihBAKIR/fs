@@ -12,7 +12,7 @@ int main(int argc, char** argv)
     auto fs = fs::make_fs(std::move(blk_dev), {});
 
     std::cout << "free blocks: " << fs.allocator()->get_num_free_blocks() << '\n';
-    auto root_dir = fs::directory(fs.get_inode(1));
+    /*auto root_dir = fs::directory(fs.get_inode(1));
     auto hello_file = fs.create_inode();
     root_dir.add_entry("hello", hello_file);
     auto hello_f = fs.get_inode(hello_file);
@@ -24,5 +24,5 @@ int main(int argc, char** argv)
     root_dir.add_entry("opt", inner_dir);
     auto inner_in = fs.get_inode(inner_dir);
     inner_in->set_type(fs::inode_type::directory);
-    inner_in->set_mode(0755);
+    inner_in->set_mode(0755);*/
 }
