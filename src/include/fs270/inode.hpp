@@ -23,16 +23,16 @@ enum class inode_type: uint8_t
 struct alignas(64) inode_data
 {
     int32_t free_marker = 0;
-    int32_t file_size;
+    int64_t file_size;
     uint8_t ref_cnt;
     inode_type type;
     uint16_t permissions;
     int32_t owner;
     int32_t group;
     time_t mod_time;
-    time_t creat_time;
-    time_t access_time;
-    char __pad__[16];
+    time_t chg_time;
+    mutable time_t access_time;
+    char __pad__[8];
 };
 
 static_assert(std::is_trivially_copyable<inode_data>{}, "Must be trivally copyable");
@@ -56,7 +56,7 @@ public:
      * Size of the file in bytes
      * @return size of the file
      */
-    int32_t size() const
+    int64_t size() const
     { return m_data.file_size; }
 
     /**
@@ -64,7 +64,7 @@ public:
      * Until this capacity is exhausted, no new block allocations are required
      * @return The capacity of the underlying blocks in total bytes
      */
-    int32_t capacity() const
+    int64_t capacity() const
     { return m_blocks.get_capacity(); };
 
     /**
@@ -78,13 +78,19 @@ public:
      * Increment the number of directory entries pointing to this inode
      */
     void increment_hardlinks()
-    { m_data.ref_cnt++; }
+    {
+        update_chg_time();
+        m_data.ref_cnt++;
+    }
 
     /**
      * Decrement the number of directory entries pointing to this inode
      */
     void decrement_hardlinks()
-    { m_data.ref_cnt--; }
+    {
+        update_chg_time();
+        m_data.ref_cnt--;
+    }
 
     /**
      * Sets the owner user id of this file
@@ -111,7 +117,10 @@ public:
     int32_t get_group() const;
 
     void set_mode(uint16_t per)
-    { m_data.permissions = per; }
+    {
+        update_chg_time();
+        m_data.permissions = per;
+    }
 
     uint16_t get_mode() const
     { return m_data.permissions; }
@@ -121,7 +130,7 @@ public:
      * If the size is greater than the current size, the gap will be zero filled
      * @param new_size size to set
      */
-    void truncate(int32_t new_size);
+    void truncate(int64_t new_size);
 
     /**
      * Reads `len` bytes starting at `from` to the buffer pointed by `buf`
@@ -149,10 +158,10 @@ public:
     clock::time_point get_modification_time() const;
 
     /**
-     * Returns the time of the creation of the file related with this inode
+     * Returns the time of the change of the file related with this inode
      * @return creation time
      */
-    clock::time_point get_creation_time() const;
+    clock::time_point get_change_time() const;
 
     /**
      * Returns the time of the latest access to the file related with this inode
@@ -199,7 +208,7 @@ public:
      * @param mod modification time
      * @param access access time
      */
-    void set_times(clock::time_point create, clock::time_point mod, clock::time_point access);
+    void set_times(clock::time_point change, clock::time_point mod, clock::time_point access);
 private:
     inode_data m_data;
     cont_file m_blocks;
@@ -212,9 +221,15 @@ private:
     void update_mod_time();
 
     /**
+     * Sets the latest change time of this inode to the current time
+     * @return
+     */
+    void update_chg_time();
+
+    /**
      * Sets the access time of this inode to the current time
      */
-    void update_access_time();
+    void update_access_time() const;
 
     friend void intrusive_ptr_add_ref(const inode* n);
     friend void intrusive_ptr_release(const inode* n);

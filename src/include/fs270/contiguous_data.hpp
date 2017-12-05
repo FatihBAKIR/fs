@@ -32,7 +32,6 @@ struct alignas(64) contiguous_data
         second_indirect_blocks;
     std::array<config::block_dev_type::sector_id_t, config::third_indirects>
         third_indirect_blocks;
-    char pad[8];
 };
 
 static_assert(std::is_trivially_copyable<contiguous_data>{}, "Must be trivally copyable");
@@ -103,7 +102,7 @@ public:
      * Total number of bytes this file can store
      * @return Number of bytes
      */
-    int32_t get_capacity() const;
+    int64_t get_capacity() const;
 
 private:
     detail::contiguous_data m_data;

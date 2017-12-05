@@ -9,6 +9,8 @@
 #include <fs270/contiguous_data.hpp>
 #include <fs270/bitmap_allocator.hpp>
 #include <iostream>
+#include <set>
+#include <algorithm>
 #include "tests_common.hpp"
 
 TEST_CASE("mkfs basic", "[fs][mkfs]")

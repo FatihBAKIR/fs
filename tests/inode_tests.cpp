@@ -7,6 +7,7 @@
 #include <fs270/mkfs.hpp>
 #include <fs270/fs_instance.hpp>
 #include <cstring>
+#include <fs270/fsexcept.hpp>
 #include "tests_common.hpp"
 
 TEST_CASE("inode basics", "[fs][inode]")
@@ -39,4 +40,28 @@ TEST_CASE("inode basics", "[fs][inode]")
     fs::inode::write(6000, in);
 
     in = fs::inode::read(fs, 6000);
+}
+
+TEST_CASE("truncate", "[fs][inode]")
+{
+    auto blk_dev = fs::tests::get_block_dev();
+    auto fs = fs::make_fs(std::move(blk_dev), {});
+
+    auto in = fs::inode::create(fs);
+    in.truncate(1000);
+    char buf;
+    for (int i = 0; i < 1000; ++i)
+    {
+        in.read(i, &buf, 1);
+        REQUIRE(buf == 0);
+    }
+}
+
+TEST_CASE("too big", "[fs][inode]")
+{
+    auto blk_dev = fs::tests::get_block_dev();
+    auto fs = fs::make_fs(std::move(blk_dev), {});
+
+    auto in = fs::inode::create(fs);
+    REQUIRE_THROWS_AS(in.truncate(999999999999999), fs::file_too_big_error);
 }

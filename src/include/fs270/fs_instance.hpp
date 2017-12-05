@@ -73,6 +73,8 @@ namespace fs
             return nin;
         }
 
+        int64_t max_inode_size() const;
+
         fs_instance(fs_instance&&) = default;
         ~fs_instance();
     private:
@@ -88,6 +90,7 @@ namespace fs
         std::unique_ptr<bitmap_allocator> m_alloc;
 
         block_cache* m_cache;
+        int64_t m_max_size;
 
         explicit fs_instance(std::unique_ptr<config::block_dev_type> dev);
     public:

@@ -17,7 +17,7 @@ namespace fs
 
         static constexpr auto direct_pointers = 6;
         static constexpr auto first_indirects = 3;
-        static constexpr auto second_indirects = 1;
+        static constexpr auto second_indirects = 3;
         static constexpr auto third_indirects = 1;
 
         static inline constexpr block_dev_type::sector_id_t nullsect = 0;

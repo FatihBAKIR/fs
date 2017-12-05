@@ -16,14 +16,20 @@ namespace fs {
         m_data.mod_time = u_time;
     }
 
-    void inode::update_access_time() {
+    void inode::update_chg_time() {
+        auto time = std::chrono::system_clock::now();
+        auto u_time = std::chrono::system_clock::to_time_t(time);
+        m_data.chg_time = u_time;
+    }
+
+    void inode::update_access_time() const {
         auto time = std::chrono::system_clock::now();
         auto u_time = std::chrono::system_clock::to_time_t(time);
         m_data.access_time = u_time;
     }
 
-    void inode::set_times(clock::time_point create, clock::time_point mod, clock::time_point access) {
-        m_data.creat_time = clock::to_time_t(create);
+    void inode::set_times(clock::time_point change, clock::time_point mod, clock::time_point access) {
+        m_data.chg_time = clock::to_time_t(change);
         m_data.mod_time = clock::to_time_t(mod);
         m_data.access_time = clock::to_time_t(access);
     }
@@ -32,8 +38,8 @@ namespace fs {
         return clock::from_time_t(m_data.mod_time);
     }
 
-    auto inode::get_creation_time() const -> clock::time_point {
-        return clock::from_time_t(m_data.creat_time);
+    auto inode::get_change_time() const -> clock::time_point {
+        return clock::from_time_t(m_data.chg_time);
     }
 
     auto inode::get_access_time() const -> clock::time_point {
@@ -41,6 +47,7 @@ namespace fs {
     }
 
     void inode::set_owner(int32_t user_id) {
+        update_chg_time();
         m_data.owner = user_id;
     }
 
@@ -49,6 +56,7 @@ namespace fs {
     }
 
     void inode::set_group(int32_t group_id) {
+        update_chg_time();
         m_data.group = group_id;
     }
 
@@ -99,14 +107,12 @@ namespace fs {
             len -= copy_bytes;
         }
 
+        update_access_time();
         return read_res;
     }
 
     void inode::write(uint64_t from, const void *buf, int32_t len) {
-        if (from / m_fs->blk_cache()->device()->get_block_size() == 8198)
-        {
-            int x = 0;
-        }
+
         if (from + len > size())
         {
             truncate(from + len);
@@ -144,7 +150,7 @@ namespace fs {
         update_mod_time();
     }
 
-    void inode::truncate(int32_t new_size) {
+    void inode::truncate(int64_t new_size) {
         if (new_size < m_data.file_size) {
             m_data.file_size = new_size;
 
@@ -165,6 +171,11 @@ namespace fs {
         }
         else if (new_size > m_data.file_size)
         {
+            if (new_size > m_fs->max_inode_size())
+            {
+                throw file_too_big_error{};
+            }
+            auto cur_cap = m_data.file_size;
             m_data.file_size = new_size;
 
             auto needed_blk_count = int32_t(std::ceil(double(new_size) / m_fs->blk_cache()->device()->get_block_size()));
@@ -175,6 +186,7 @@ namespace fs {
                 auto blk = m_fs->allocator()->alloc(1);
                 if (blk == config::nullsect)
                 {
+                    m_data.file_size = cur_cap;
                     throw out_of_space_error{};
                 }
                 m_blocks.push_indirect_block(blk);
@@ -185,15 +197,21 @@ namespace fs {
                 auto blk = m_fs->allocator()->alloc(1);
                 if (blk == config::nullsect)
                 {
+                    m_data.file_size = cur_cap;
                     throw out_of_space_error{};
                 }
                 m_blocks.push_block(blk);
+                auto b = m_fs->blk_cache()->load(blk, true);
+                auto buf = b->data<uint64_t>();
+                std::fill(buf, buf + (m_fs->blk_cache()->device()->get_block_size() / sizeof(uint64_t)), 0);
+                cur_cap += m_fs->blk_cache()->device()->get_block_size();
             }
         }
-        if (m_blocks.get_block_count() * m_fs->blk_cache()->device()->get_block_size() < size())
+        if (m_blocks.get_capacity() < size())
         {
-            throw std::runtime_error("truncate fail");
+            throw integrity_error("truncate fail");
         }
+        update_chg_time();
         update_mod_time();
     }
 
